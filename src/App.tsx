@@ -256,83 +256,62 @@ function useIsMobile(): boolean {
 
 // ── Beam SVG ──────────────────────────────────────────────────────────────────
 function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200 }: { hR?:number; fR?:number; wR?:number; ftR?:number; size?:number }): JSX.Element {
-  const W = size * 1.7; // extra width for labels
-  const H = size * 1.4; // extra height for labels
-  const fw = size * 0.28 + fR * size * 0.44;
-  const bh = size * 0.26 + hR * size * 0.5;
-  const wt = Math.max(5, size * 0.028 + wR * size * 0.034);
-  const ft = Math.max(6, size * 0.034 + ftR * size * 0.03);
+  const W = size * 1.9;
+  const H = size * 1.55;
+  // Exaggerated ranges: flange goes from 20% to 90% of width, height from 15% to 85%
+  const fw = size * 0.18 + fR * size * 0.72;
+  const bh = size * 0.14 + hR * size * 0.72;
+  const wt = Math.max(4, size * 0.022 + wR * size * 0.055);
+  const ft = Math.max(5, size * 0.028 + ftR * size * 0.048);
   const cx = W / 2;
   const top = (H - bh) / 2;
   const bot = top + bh;
-  const T = "all 0.45s cubic-bezier(.4,0,.2,1)";
-
-  // label positions
-  const labelX = cx + fw / 2 + 14;   // right side — Patín arrow
-  const arrowLeft = cx - fw / 2 - 14; // left side — Peralte arrow
+  // Slow springy transition for dramatic effect
+  const T = "all 0.7s cubic-bezier(0.34,1.56,0.64,1)";
+  const arrowLeft = cx - fw / 2 - 18;
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{overflow:"visible", display:"block"}}>
       <defs>
         <linearGradient id="gs2" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#bbf7d0"/>
-          <stop offset="45%" stopColor="#4ade80"/>
+          <stop offset="0%" stopColor="#d1fae5"/>
+          <stop offset="35%" stopColor="#4ade80"/>
           <stop offset="100%" stopColor="#15803d"/>
         </linearGradient>
         <linearGradient id="gw2" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#15803d"/>
+          <stop offset="0%" stopColor="#166534"/>
           <stop offset="50%" stopColor="#4ade80"/>
-          <stop offset="100%" stopColor="#15803d"/>
+          <stop offset="100%" stopColor="#166534"/>
         </linearGradient>
-        <filter id="sh2"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#15803d" floodOpacity="0.28"/></filter>
-        <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,255,255,0.7)"/>
-        </marker>
-        <marker id="arr2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse">
-          <path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,255,255,0.7)"/>
-        </marker>
+        <filter id="sh2" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#15803d" floodOpacity="0.4"/>
+        </filter>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
       </defs>
 
-      {/* ── Flanges & web ── */}
-      <rect x={cx-fw/2} y={top} width={fw} height={ft} fill="url(#gs2)" rx="2.5" filter="url(#sh2)" style={{transition:T}}/>
+      {/* ── Top flange ── */}
+      <rect x={cx-fw/2} y={top} width={fw} height={ft} fill="url(#gs2)" rx="3" filter="url(#sh2)" style={{transition:T}}/>
+      {/* ── Web ── */}
       <rect x={cx-wt/2} y={top+ft} width={wt} height={bh-ft*2} fill="url(#gw2)" style={{transition:T}}/>
-      <rect x={cx-fw/2} y={bot-ft} width={fw} height={ft} fill="url(#gs2)" rx="2.5" filter="url(#sh2)" style={{transition:T}}/>
+      {/* ── Bottom flange ── */}
+      <rect x={cx-fw/2} y={bot-ft} width={fw} height={ft} fill="url(#gs2)" rx="3" filter="url(#sh2)" style={{transition:T}}/>
 
-      {/* ── PERALTE: vertical double-arrow on the left ── */}
-      <line
-        x1={arrowLeft} y1={top}
-        x2={arrowLeft} y2={bot}
-        stroke="rgba(255,255,255,0.65)" strokeWidth="1.2" strokeDasharray="3,2"
-        style={{transition:T}}
-      />
-      <line x1={arrowLeft-6} y1={top} x2={arrowLeft+6} y2={top} stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" style={{transition:T}}/>
-      <line x1={arrowLeft-6} y1={bot} x2={arrowLeft+6} y2={bot} stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" style={{transition:T}}/>
-      {/* label bg */}
-      <rect x={arrowLeft - 34} y={(top+bot)/2 - 11} width={44} height={20} rx="5" fill="rgba(0,0,0,0.32)" style={{transition:T}}/>
-      <text
-        x={arrowLeft - 12} y={(top+bot)/2 + 4}
-        textAnchor="middle" fontSize="11" fontWeight="700"
-        fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif"
-        style={{transition:T}}
-      >Peralte</text>
+      {/* ── PERALTE label: left side ── */}
+      <line x1={arrowLeft} y1={top} x2={arrowLeft} y2={bot} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" strokeDasharray="4,3" style={{transition:T}}/>
+      <line x1={arrowLeft-7} y1={top} x2={arrowLeft+7} y2={top} stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" style={{transition:T}}/>
+      <line x1={arrowLeft-7} y1={bot} x2={arrowLeft+7} y2={bot} stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" style={{transition:T}}/>
+      <rect x={arrowLeft-40} y={(top+bot)/2-12} width={52} height={22} rx="6" fill="rgba(0,0,0,0.45)" style={{transition:T}}/>
+      <text x={arrowLeft-14} y={(top+bot)/2+5} textAnchor="middle" fontSize="12" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>Peralte</text>
 
-      {/* ── PATÍN: horizontal double-arrow on top flange ── */}
-      <line
-        x1={cx - fw/2} y1={top - 14}
-        x2={cx + fw/2} y2={top - 14}
-        stroke="rgba(255,255,255,0.65)" strokeWidth="1.2" strokeDasharray="3,2"
-        style={{transition:T}}
-      />
-      <line x1={cx-fw/2} y1={top-20} x2={cx-fw/2} y2={top-8} stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" style={{transition:T}}/>
-      <line x1={cx+fw/2} y1={top-20} x2={cx+fw/2} y2={top-8} stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" style={{transition:T}}/>
-      {/* label bg */}
-      <rect x={cx - 24} y={top - 34} width={48} height={20} rx="5" fill="rgba(0,0,0,0.32)" style={{transition:T}}/>
-      <text
-        x={cx} y={top - 20}
-        textAnchor="middle" fontSize="11" fontWeight="700"
-        fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif"
-        style={{transition:T}}
-      >Patín</text>
+      {/* ── PATÍN label: above top flange ── */}
+      <line x1={cx-fw/2} y1={top-16} x2={cx+fw/2} y2={top-16} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" strokeDasharray="4,3" style={{transition:T}}/>
+      <line x1={cx-fw/2} y1={top-22} x2={cx-fw/2} y2={top-9} stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" style={{transition:T}}/>
+      <line x1={cx+fw/2} y1={top-22} x2={cx+fw/2} y2={top-9} stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" style={{transition:T}}/>
+      <rect x={cx-28} y={top-40} width={56} height={22} rx="6" fill="rgba(0,0,0,0.45)" style={{transition:T}}/>
+      <text x={cx} y={top-25} textAnchor="middle" fontSize="12" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>Patín</text>
     </svg>
   );
 }
@@ -387,6 +366,7 @@ function FractionPicker({ label, selectedInch, onSelect, useMM=false }: { label:
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App(): JSX.Element {
   const isMobile = useIsMobile();
+  const [view, setView] = useState<"search"|"catalog">("search");
   const [unit, setUnit] = useState<"in"|"cm">("in");
   const [height, setHeight] = useState("");
   const [flange, setFlange] = useState("");
@@ -397,6 +377,8 @@ export default function App(): JSX.Element {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Beam|null>(null);
+
+  const [catLength, setCatLength] = useState<LengthFt>(20);
 
   const hI = height ? toInch(parseFloat(height),unit) : null;
   const fI = flange ? toInch(parseFloat(flange),unit) : null;
@@ -420,7 +402,12 @@ export default function App(): JSX.Element {
     setUnit(u);
   }
 
-  const dv=(v:number)=> unit==="in" ? `${fromInch(v,unit)} pulg` : `${fromInch(v,unit)} cm`;
+  // filtered catalog beams
+  const catBeams = BEAMS;
+
+  const dv=(v:number)=> unit==="in" ? `${fromInch(v,unit)}"` : `${fromInch(v,unit)} cm`;
+
+
 
   const inputCss: CSSProperties = {
     width:"100%", padding:"12px 44px 12px 14px",
@@ -469,26 +456,41 @@ export default function App(): JSX.Element {
       {/* ── Header ── */}
       <header style={{background:"#ffffff",borderBottom:"1px solid #e5e7eb",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:30,boxShadow:"0 1px 6px rgba(0,0,0,0.06)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <img src="/logo.jpg" alt="Surtiaceros" style={{height:isMobile?40:48,width:"auto",objectFit:"contain",flexShrink:0}}/>
-          <div style={{fontSize:11,color:"#6b7280",fontWeight:600,letterSpacing:"0.03em",display:isMobile?"none":"block"}}>Identificador de Vigas</div>
+          <img src="/logo.jpg" alt="Surtiaceros" style={{height:isMobile?36:44,width:"auto",objectFit:"contain",flexShrink:0}}/>
         </div>
-        <div style={{background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:20,padding:"4px 12px",fontSize:12,color:"#374151",fontWeight:600}}>{BEAMS.length} perfiles</div>
+        {/* Nav tabs */}
+        <div style={{display:"flex",background:"#f3f4f6",borderRadius:10,padding:3,gap:2}}>
+          {([
+            {id:"search" as const, label:isMobile?"Buscar":"Identificador"},
+            {id:"catalog" as const, label:isMobile?"Catálogo":"Catálogo de Vigas"},
+          ]).map(({id,label})=>(
+            <button key={id} type="button" onClick={()=>setView(id)} className="tap" style={{padding:isMobile?"8px 12px":"8px 16px",borderRadius:8,border:"none",cursor:"pointer",fontSize:isMobile?11:12,fontWeight:700,transition:"all 0.15s",background:view===id?"#111827":"transparent",color:view===id?"#ffffff":"#6b7280",minHeight:34,whiteSpace:"nowrap"}}>{label}</button>
+          ))}
+        </div>
       </header>
 
-      {/* ── Hero banner — dark, not all-green ── */}
-      <div style={{background:"linear-gradient(160deg,#111827 0%,#1f2937 60%,#166534 100%)",padding:isMobile?"28px 20px 32px":"40px 32px 48px",textAlign:"center",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,background:"rgba(22,163,74,0.08)",borderRadius:"50%",pointerEvents:"none"}}/>
-        <div style={{position:"absolute",bottom:-60,left:-30,width:200,height:200,background:"rgba(22,163,74,0.05)",borderRadius:"50%",pointerEvents:"none"}}/>
-        <div style={{position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
-          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?160:200}/>
-          <div>
-            <h1 style={{fontSize:isMobile?22:28,fontWeight:800,color:"#ffffff",letterSpacing:"-0.03em",lineHeight:1.2,marginBottom:6}}>
+      {/* ── SEARCH VIEW ── */}
+      {view === "search" && <>
+      {/* ── Beam panel — sticky on mobile so beam stays visible while scrolling ── */}
+      <div style={{
+        background:"linear-gradient(160deg,#111827 0%,#1f2937 65%,#166534 100%)",
+        padding:isMobile?"20px 12px 14px":"36px 32px 40px",
+        textAlign:"center", position:"relative", overflow:"hidden",
+        ...(isMobile ? {position:"sticky" as const, top:56, zIndex:20} : {})
+      }}>
+        <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,background:"rgba(22,163,74,0.07)",borderRadius:"50%",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:-50,left:-30,width:180,height:180,background:"rgba(22,163,74,0.04)",borderRadius:"50%",pointerEvents:"none"}}/>
+        <div style={{position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:isMobile?6:14}}>
+          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?175:220}/>
+          {!isMobile && <div>
+            <h1 style={{fontSize:28,fontWeight:800,color:"#ffffff",letterSpacing:"-0.03em",lineHeight:1.2,marginBottom:6}}>
               Encuentra tu viga de acero
             </h1>
-            <p style={{fontSize:isMobile?12:14,color:"rgba(255,255,255,0.55)",lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>
+            <p style={{fontSize:14,color:"rgba(255,255,255,0.5)",lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>
               Ingresa dimensiones → perfil más cercano + precio inmediato
             </p>
-          </div>
+          </div>}
+          {isMobile && <p style={{fontSize:11,color:"rgba(255,255,255,0.4)",margin:0}}>Ingresa dimensiones abajo</p>}
         </div>
       </div>
 
@@ -702,6 +704,72 @@ export default function App(): JSX.Element {
               : <><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="2.2"/><path d="M13 13L17 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>Buscar Perfil</>
             }
           </button>
+        </div>
+      )}
+      </>}
+
+      {/* ── CATALOG VIEW ── */}
+      {view === "catalog" && (
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+          {/* Catalog header */}
+          <div style={{background:"#111827",padding:isMobile?"20px 16px":"24px 28px"}}>
+            <div style={{maxWidth:640,margin:"0 auto"}}>
+              <div style={{fontSize:isMobile?18:22,fontWeight:800,color:"#ffffff",marginBottom:4}}>Catálogo de Vigas</div>
+              <div style={{fontSize:13,color:"rgba(255,255,255,0.45)",marginBottom:16}}>{BEAMS.length} perfiles disponibles</div>
+              {/* Length toggle */}
+              <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}>
+                <span style={{fontSize:12,color:"rgba(255,255,255,0.45)",fontWeight:600}}>Ver precios para:</span>
+                <div style={{display:"flex",background:"rgba(255,255,255,0.08)",borderRadius:8,padding:3,gap:2}}>
+                  {LENGTH_OPTIONS.map(ft=>(
+                    <button key={ft} type="button" onClick={()=>setCatLength(ft)} className="tap" style={{padding:"6px 14px",borderRadius:6,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,transition:"all 0.15s",background:catLength===ft?"#16a34a":"transparent",color:catLength===ft?"#ffffff":"rgba(255,255,255,0.5)",minHeight:30}}>{ft} ft</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Beam list */}
+          <div style={{flex:1,padding:isMobile?"12px 12px 80px":"16px 20px 40px",maxWidth:640,width:"100%",margin:"0 auto",display:"flex",flexDirection:"column",gap:6}}>
+            {catBeams.map((beam,i)=>{
+              const weightKg = beam.lbsPerFt * catLength * LBS_TO_KG;
+              const price = weightKg * PRICE_PER_KG;
+              return (
+                <div key={beam.id} className="rc" style={{animationDelay:`${Math.min(i,20)*0.02}s`,background:"#ffffff",border:"1px solid #e5e7eb",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+                  {/* Size badge */}
+                  <div style={{width:40,height:40,borderRadius:10,background:"#f3f4f6",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#374151",fontFamily:"monospace"}}>{beam.heightR}"</div>
+                  {/* Name & dims */}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:700,color:"#111827",fontFamily:"'JetBrains Mono',monospace",letterSpacing:"-0.02em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                      Viga {beam.name}
+                    </div>
+                    <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>
+                      {beam.lbsPerFt} lb/ft · {(beam.lbsPerFt*LBS_TO_KG).toFixed(2)} kg/m
+                      {beam.flange ? ` · patín ${beam.flange}"` : ""}
+                    </div>
+                  </div>
+                  {/* Price */}
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontSize:14,fontWeight:800,color:"#16a34a",fontFamily:"monospace"}}>{fmtPeso(price)}</div>
+                    <div style={{fontSize:11,color:"#9ca3af",marginTop:1}}>{Math.round(weightKg)} kg · {catLength} ft</div>
+                  </div>
+                  {/* WhatsApp */}
+                  <a
+                    href={`https://wa.me/526616137040?text=${encodeURIComponent(
+                      `Hola Surtiaceros, me interesa cotizar:\n\n*Viga ${beam.name}*\n📏 ${catLength} ft (${(catLength*FT_TO_M).toFixed(1)} m)\n⚖️ ${Math.round(weightKg)} kg\n💰 ${fmtPeso(price)} c/IVA\n\n¿Pueden confirmar disponibilidad?`
+                    )}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{flexShrink:0,width:36,height:36,borderRadius:10,background:"#25d366",display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none"}}
+                    title="Cotizar por WhatsApp"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.121 1.532 5.856L.057 23.882l6.198-1.627A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.52-5.184-1.426l-.371-.22-3.681.965.982-3.588-.242-.38A9.937 9.937 0 0 1 2 12C2 6.478 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                    </svg>
+                  </a>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
