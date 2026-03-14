@@ -1,6 +1,4 @@
-Yes — paste this entire file into `src/App.tsx` and save it.
 
-```tsx
 import { useState, useEffect } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -495,4 +493,3 @@ export default function App(): JSX.Element {
               color: "#0f172a",
               letterSpacing: "-0.03em",
               lineHeight
-```
