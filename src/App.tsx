@@ -222,12 +222,6 @@ function fromInch(val: number, unit: "in"|"cm"): string {
 function fmtPeso(n: number): string {
   return new Intl.NumberFormat("es-MX", { style:"currency", currency:"MXN", maximumFractionDigits:0 }).format(n);
 }
-function fracLabel(inch: number): string {
-  let best = FRAC_OPTIONS[0], bestD = Infinity;
-  for (const o of FRAC_OPTIONS) { const d = Math.abs(o.inch - inch); if (d < bestD) { bestD = d; best = o; } }
-  return bestD < 0.04 ? best.label : `${inch.toFixed(3)}"`;
-}
-
 // Full fraction set for catalog detail display
 const FULL_FRACS: {label:string; inch:number}[] = [
   {label:'1/16"', inch:1/16}, {label:'1/8"', inch:1/8}, {label:'3/16"', inch:3/16},
@@ -503,7 +497,6 @@ export default function App(): JSX.Element {
   // filtered catalog beams
   const catBeams = BEAMS;
 
-  const dv=(v:number)=> unit==="in" ? `${fromInch(v,unit)}"` : `${fromInch(v,unit)} cm`;
 
 
 
