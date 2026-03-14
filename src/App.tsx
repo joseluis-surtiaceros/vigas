@@ -293,10 +293,20 @@ function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200, heightInch=null, f
   heightInch?: number | null; flangeInch?: number | null;
   webInch?: number | null; flangeTInch?: number | null;
 }): JSX.Element {
-  const minDim = size * 0.20;
-  const maxDim = size * 0.82;
-  const fw = minDim + fR * (maxDim - minDim);
-  const bh = minDim + hR * (maxDim - minDim);
+  // When real values are available, use a shared inch→pixel scale so
+  // h=12 and b=12 produce the same pixel length (true square proportions).
+  // Max beam dimension in catalog is ~44", min is ~4".
+  const INCH_MIN = 3.5, INCH_MAX = 44;
+  const pixMin = size * 0.18, pixMax = size * 0.80;
+  const inchToPx = (v: number) => pixMin + ((v - INCH_MIN) / (INCH_MAX - INCH_MIN)) * (pixMax - pixMin);
+
+  const fw = heightInch != null && flangeInch != null
+    ? inchToPx(flangeInch)
+    : pixMin + fR * (pixMax - pixMin);
+  const bh = heightInch != null
+    ? inchToPx(heightInch)
+    : pixMin + hR * (pixMax - pixMin);
+
   const wt = Math.max(4, size * 0.018 + wR * size * 0.05);
   const ft = Math.max(5, size * 0.024 + ftR * size * 0.044);
 
@@ -310,22 +320,22 @@ function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200, heightInch=null, f
 
   const T = "all 0.65s cubic-bezier(0.34,1.45,0.64,1)";
 
-  // Main dimension labels
-  const peralteLabel  = heightInch  != null ? `h = ${heightInch.toFixed(3)}"` : "Peralte (h)";
-  const patinLabel    = flangeInch  != null ? `b = ${flangeInch.toFixed(3)}"` : "Patín (b)";
-  const twLabel       = webInch     != null ? `tw = ${webInch.toFixed(3)}"` : null;
-  const tfLabel       = flangeTInch != null ? `tf = ${flangeTInch.toFixed(3)}"` : null;
+  // Main dimension labels — fractions only, no decimals
+  const peralteLabel  = heightInch  != null ? `h = ${nearestFrac(heightInch)}`  : "Peralte (h)";
+  const patinLabel    = flangeInch  != null ? `b = ${nearestFrac(flangeInch)}`  : "Patín (b)";
+  const twLabel       = webInch     != null ? `tw = ${nearestFrac(webInch)}`    : null;
+  const tfLabel       = flangeTInch != null ? `tf = ${nearestFrac(flangeTInch)}`: null;
 
   // Bracket positions
-  const bracketX = cx - fw / 2 - 16;  // left side for Peralte
-  const bracketY = top - 18;            // top side for Patín
-  const rightX   = cx + fw / 2 + 16;   // right side for tf label
+  const bracketX = cx - fw / 2 - 16;
+  const bracketY = top - 18;
+  const rightX   = cx + fw / 2 + 16;
 
-  // Pill widths
-  const peralteW  = heightInch  != null ? 78 : 62;
-  const patinW    = flangeInch  != null ? 78 : 56;
+  // Pill widths — fraction strings can be slightly longer
+  const peralteW  = heightInch  != null ? 82 : 62;
+  const patinW    = flangeInch  != null ? 82 : 56;
   const twPillW   = webInch     != null ? 72 : 0;
-  const tfPillW   = flangeTInch != null ? 76 : 0;
+  const tfPillW   = flangeTInch != null ? 72 : 0;
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{overflow:"visible", display:"block", margin:"0 auto"}}>
