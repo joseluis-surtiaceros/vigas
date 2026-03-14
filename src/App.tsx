@@ -256,19 +256,27 @@ function useIsMobile(): boolean {
 
 // ── Beam SVG ──────────────────────────────────────────────────────────────────
 function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200 }: { hR?:number; fR?:number; wR?:number; ftR?:number; size?:number }): JSX.Element {
+  // Both height and flange use the SAME scale so aspect ratio is preserved.
+  // When h == b the beam looks visually square (tall as it is wide).
+  const minDim = size * 0.20;
+  const maxDim = size * 0.82;
+  const fw = minDim + fR * (maxDim - minDim);   // flange width
+  const bh = minDim + hR * (maxDim - minDim);   // beam height
+
+  // Thickness scales with the smaller of the two dims for realism
+  const wt = Math.max(4, size * 0.018 + wR * size * 0.05);
+  const ft = Math.max(5, size * 0.024 + ftR * size * 0.044);
+
+  // Canvas is always the same size — only the I-beam shape changes inside it
   const W = size * 1.9;
   const H = size * 1.55;
-  // Exaggerated ranges: flange goes from 20% to 90% of width, height from 15% to 85%
-  const fw = size * 0.18 + fR * size * 0.72;
-  const bh = size * 0.14 + hR * size * 0.72;
-  const wt = Math.max(4, size * 0.022 + wR * size * 0.055);
-  const ft = Math.max(5, size * 0.028 + ftR * size * 0.048);
   const cx = W / 2;
   const top = (H - bh) / 2;
   const bot = top + bh;
-  // Slow springy transition for dramatic effect
-  const T = "all 0.7s cubic-bezier(0.34,1.56,0.64,1)";
-  const arrowLeft = cx - fw / 2 - 18;
+
+  // Springy overshoot easing for dramatic feel
+  const T = "all 0.65s cubic-bezier(0.34,1.45,0.64,1)";
+  const arrowLeft = cx - fw / 2 - 20;
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{overflow:"visible", display:"block"}}>
@@ -284,33 +292,29 @@ function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200 }: { hR?:number; fR
           <stop offset="100%" stopColor="#166534"/>
         </linearGradient>
         <filter id="sh2" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#15803d" floodOpacity="0.4"/>
-        </filter>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="3" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#15803d" floodOpacity="0.38"/>
         </filter>
       </defs>
 
       {/* ── Top flange ── */}
       <rect x={cx-fw/2} y={top} width={fw} height={ft} fill="url(#gs2)" rx="3" filter="url(#sh2)" style={{transition:T}}/>
       {/* ── Web ── */}
-      <rect x={cx-wt/2} y={top+ft} width={wt} height={bh-ft*2} fill="url(#gw2)" style={{transition:T}}/>
+      <rect x={cx-wt/2} y={top+ft} width={wt} height={Math.max(2, bh-ft*2)} fill="url(#gw2)" style={{transition:T}}/>
       {/* ── Bottom flange ── */}
       <rect x={cx-fw/2} y={bot-ft} width={fw} height={ft} fill="url(#gs2)" rx="3" filter="url(#sh2)" style={{transition:T}}/>
 
-      {/* ── PERALTE label: left side ── */}
+      {/* ── PERALTE: left side vertical bracket ── */}
       <line x1={arrowLeft} y1={top} x2={arrowLeft} y2={bot} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" strokeDasharray="4,3" style={{transition:T}}/>
-      <line x1={arrowLeft-7} y1={top} x2={arrowLeft+7} y2={top} stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" style={{transition:T}}/>
-      <line x1={arrowLeft-7} y1={bot} x2={arrowLeft+7} y2={bot} stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" style={{transition:T}}/>
-      <rect x={arrowLeft-40} y={(top+bot)/2-12} width={52} height={22} rx="6" fill="rgba(0,0,0,0.45)" style={{transition:T}}/>
-      <text x={arrowLeft-14} y={(top+bot)/2+5} textAnchor="middle" fontSize="12" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>Peralte</text>
+      <line x1={arrowLeft-7} y1={top} x2={arrowLeft+7} y2={top} stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" style={{transition:T}}/>
+      <line x1={arrowLeft-7} y1={bot} x2={arrowLeft+7} y2={bot} stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" style={{transition:T}}/>
+      <rect x={arrowLeft-42} y={(top+bot)/2-12} width={54} height={22} rx="6" fill="rgba(0,0,0,0.48)" style={{transition:T}}/>
+      <text x={arrowLeft-15} y={(top+bot)/2+5} textAnchor="middle" fontSize="12" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>Peralte</text>
 
-      {/* ── PATÍN label: above top flange ── */}
+      {/* ── PATÍN: top horizontal bracket ── */}
       <line x1={cx-fw/2} y1={top-16} x2={cx+fw/2} y2={top-16} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" strokeDasharray="4,3" style={{transition:T}}/>
-      <line x1={cx-fw/2} y1={top-22} x2={cx-fw/2} y2={top-9} stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" style={{transition:T}}/>
-      <line x1={cx+fw/2} y1={top-22} x2={cx+fw/2} y2={top-9} stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" style={{transition:T}}/>
-      <rect x={cx-28} y={top-40} width={56} height={22} rx="6" fill="rgba(0,0,0,0.45)" style={{transition:T}}/>
+      <line x1={cx-fw/2} y1={top-22} x2={cx-fw/2} y2={top-9} stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" style={{transition:T}}/>
+      <line x1={cx+fw/2} y1={top-22} x2={cx+fw/2} y2={top-9} stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" style={{transition:T}}/>
+      <rect x={cx-28} y={top-40} width={56} height={22} rx="6" fill="rgba(0,0,0,0.48)" style={{transition:T}}/>
       <text x={cx} y={top-25} textAnchor="middle" fontSize="12" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>Patín</text>
     </svg>
   );
@@ -453,10 +457,21 @@ export default function App(): JSX.Element {
         input:focus{border-color:#16a34a!important;box-shadow:0 0 0 3px rgba(22,163,74,0.15)!important;}
       `}</style>
 
+      {/* ── Top banner with website link ── */}
+      <div style={{background:"#111827",padding:"7px 20px",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+        <span style={{fontSize:11,color:"rgba(255,255,255,0.45)"}}>Visita nuestro sitio:</span>
+        <a href="https://surtiaceros.com" target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"#4ade80",fontWeight:700,textDecoration:"none",letterSpacing:"0.01em"}}>
+          www.surtiaceros.com →
+        </a>
+      </div>
+
       {/* ── Header ── */}
       <header style={{background:"#ffffff",borderBottom:"1px solid #e5e7eb",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:30,boxShadow:"0 1px 6px rgba(0,0,0,0.06)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <img src="/logo.jpg" alt="Surtiaceros" style={{height:isMobile?36:44,width:"auto",objectFit:"contain",flexShrink:0}}/>
+          <a href="https://surtiaceros.com" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:8,textDecoration:"none"}}>
+            <img src="/logo.jpg" alt="Surtiaceros" style={{height:isMobile?36:44,width:"auto",objectFit:"contain",flexShrink:0}}/>
+            {!isMobile && <span style={{fontSize:11,color:"#16a34a",fontWeight:600,letterSpacing:"0.02em",borderBottom:"1px solid #bbf7d0"}}>surtiaceros.com</span>}
+          </a>
         </div>
         {/* Nav tabs */}
         <div style={{display:"flex",background:"#f3f4f6",borderRadius:10,padding:3,gap:2}}>
@@ -476,7 +491,7 @@ export default function App(): JSX.Element {
         background:"linear-gradient(160deg,#111827 0%,#1f2937 65%,#166534 100%)",
         padding:isMobile?"20px 12px 14px":"36px 32px 40px",
         textAlign:"center", position:"relative", overflow:"hidden",
-        ...(isMobile ? {position:"sticky" as const, top:56, zIndex:20} : {})
+        ...(isMobile ? {position:"sticky" as const, top:92, zIndex:20} : {})
       }}>
         <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,background:"rgba(22,163,74,0.07)",borderRadius:"50%",pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:-50,left:-30,width:180,height:180,background:"rgba(22,163,74,0.04)",borderRadius:"50%",pointerEvents:"none"}}/>
@@ -773,13 +788,44 @@ export default function App(): JSX.Element {
         </div>
       )}
 
-      <footer style={{background:"#ffffff",borderTop:"1px solid #e5e7eb",padding:"18px 20px",textAlign:"center",marginBottom:isMobile?"80px":0}}>
-        <img src="/logo.jpg" alt="Surtiaceros" style={{height:32,width:"auto",objectFit:"contain",marginBottom:10,opacity:0.6}}/>
-        <p style={{fontSize:11,color:"#6b7280",lineHeight:1.6,maxWidth:400,margin:"0 auto"}}>
-          Este es un programa de <strong style={{color:"#111827"}}>SURTIACEROS DEL PACIFICO SA DE CV</strong>.<br/>
-          Todos los derechos Reservados © {new Date().getFullYear()}
-        </p>
-        <p style={{fontSize:10,color:"#9ca3af",marginTop:6}}>v2.2 · Precios estimados, sujetos a confirmación</p>
+      <footer style={{background:"#111827",borderTop:"1px solid #1f2937",padding:"28px 20px 32px",textAlign:"center",marginBottom:isMobile?"80px":0}}>
+        {/* Logo + website link */}
+        <div style={{marginBottom:20}}>
+          <a href="https://surtiaceros.com" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",flexDirection:"column",alignItems:"center",gap:8,textDecoration:"none"}}>
+            <img src="/logo.jpg" alt="Surtiaceros" style={{height:40,width:"auto",objectFit:"contain",opacity:0.85,filter:"brightness(1.1)"}}/>
+            <span style={{fontSize:13,color:"#4ade80",fontWeight:600,letterSpacing:"0.02em",borderBottom:"1px solid rgba(74,222,128,0.4)",paddingBottom:1}}>www.surtiaceros.com</span>
+          </a>
+        </div>
+
+        {/* Contact info */}
+        <div style={{maxWidth:420,margin:"0 auto",display:"flex",flexDirection:"column",gap:5,marginBottom:20}}>
+          <p style={{fontSize:13,fontWeight:700,color:"#ffffff",letterSpacing:"-0.01em"}}>Surtiaceros del Pacífico S.A. de C.V.</p>
+          <p style={{fontSize:12,color:"rgba(255,255,255,0.55)",lineHeight:1.7}}>
+            Calle Aguascalientes No. 4255, Col. Constitución<br/>
+            Playas de Rosarito, Baja California, C.P. 22707, México
+          </p>
+          <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"4px 16px",marginTop:4}}>
+            <a href="tel:6616137038" style={{fontSize:12,color:"#4ade80",textDecoration:"none",fontWeight:500}}>📞 661 613 7038</a>
+            <a href="tel:6616137040" style={{fontSize:12,color:"#4ade80",textDecoration:"none",fontWeight:500}}>📞 661 613 7040</a>
+            <a href="mailto:contacto@surtiaceros.com" style={{fontSize:12,color:"#4ade80",textDecoration:"none",fontWeight:500}}>✉️ contacto@surtiaceros.com</a>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{height:1,background:"rgba(255,255,255,0.08)",maxWidth:420,margin:"0 auto 18px"}}/>
+
+        {/* Legal notices */}
+        <div style={{maxWidth:420,margin:"0 auto",display:"flex",flexDirection:"column",gap:4}}>
+          <p style={{fontSize:11,color:"rgba(255,255,255,0.38)",lineHeight:1.7}}>
+            Los precios mostrados son de referencia. El envío puede tardar de 7 a 10 días hábiles.<br/>
+            Favor de contactar a un agente para confirmar disponibilidad.
+          </p>
+          <p style={{fontSize:11,color:"rgba(255,255,255,0.28)",marginTop:6,lineHeight:1.6}}>
+            Aplicación desarrollada por Surtiaceros del Pacífico S.A. de C.V.<br/>
+            Todos los derechos reservados © {new Date().getFullYear()}
+          </p>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.18)",marginTop:4}}>v2.3</p>
+        </div>
       </footer>
     </div>
   );
