@@ -255,43 +255,131 @@ function useIsMobile(): boolean {
 }
 
 // ── Beam SVG ──────────────────────────────────────────────────────────────────
-function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=100 }: { hR?:number; fR?:number; wR?:number; ftR?:number; size?:number }): JSX.Element {
-  const W=size, H=size*1.1, fw=size*0.3+fR*size*0.42, bh=size*0.28+hR*size*0.48;
-  const wt=Math.max(4,size*0.03+wR*size*0.03), ft=Math.max(5,size*0.034+ftR*size*0.028);
-  const cx=W/2, top=(H-bh)/2, bot=top+bh, T="all 0.4s cubic-bezier(.4,0,.2,1)";
+function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200 }: { hR?:number; fR?:number; wR?:number; ftR?:number; size?:number }): JSX.Element {
+  const W = size * 1.7; // extra width for labels
+  const H = size * 1.4; // extra height for labels
+  const fw = size * 0.28 + fR * size * 0.44;
+  const bh = size * 0.26 + hR * size * 0.5;
+  const wt = Math.max(5, size * 0.028 + wR * size * 0.034);
+  const ft = Math.max(6, size * 0.034 + ftR * size * 0.03);
+  const cx = W / 2;
+  const top = (H - bh) / 2;
+  const bot = top + bh;
+  const T = "all 0.45s cubic-bezier(.4,0,.2,1)";
+
+  // label positions
+  const labelX = cx + fw / 2 + 14;   // right side — Patín arrow
+  const arrowLeft = cx - fw / 2 - 14; // left side — Peralte arrow
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{overflow:"visible",display:"block",transition:T}}>
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{overflow:"visible", display:"block"}}>
       <defs>
-        <linearGradient id="gs" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#bbf7d0"/><stop offset="50%" stopColor="#4ade80"/><stop offset="100%" stopColor="#15803d"/>
+        <linearGradient id="gs2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#bbf7d0"/>
+          <stop offset="45%" stopColor="#4ade80"/>
+          <stop offset="100%" stopColor="#15803d"/>
         </linearGradient>
-        <linearGradient id="gw" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#15803d"/><stop offset="50%" stopColor="#4ade80"/><stop offset="100%" stopColor="#15803d"/>
+        <linearGradient id="gw2" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#15803d"/>
+          <stop offset="50%" stopColor="#4ade80"/>
+          <stop offset="100%" stopColor="#15803d"/>
         </linearGradient>
-        <filter id="sh"><feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#16a34a" floodOpacity="0.3"/></filter>
+        <filter id="sh2"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#15803d" floodOpacity="0.28"/></filter>
+        <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,255,255,0.7)"/>
+        </marker>
+        <marker id="arr2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse">
+          <path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,255,255,0.7)"/>
+        </marker>
       </defs>
-      <rect x={cx-fw/2} y={top} width={fw} height={ft} fill="url(#gs)" rx="2" filter="url(#sh)" style={{transition:T}}/>
-      <rect x={cx-wt/2} y={top+ft} width={wt} height={bh-ft*2} fill="url(#gw)" style={{transition:T}}/>
-      <rect x={cx-fw/2} y={bot-ft} width={fw} height={ft} fill="url(#gs)" rx="2" filter="url(#sh)" style={{transition:T}}/>
+
+      {/* ── Flanges & web ── */}
+      <rect x={cx-fw/2} y={top} width={fw} height={ft} fill="url(#gs2)" rx="2.5" filter="url(#sh2)" style={{transition:T}}/>
+      <rect x={cx-wt/2} y={top+ft} width={wt} height={bh-ft*2} fill="url(#gw2)" style={{transition:T}}/>
+      <rect x={cx-fw/2} y={bot-ft} width={fw} height={ft} fill="url(#gs2)" rx="2.5" filter="url(#sh2)" style={{transition:T}}/>
+
+      {/* ── PERALTE: vertical double-arrow on the left ── */}
+      <line
+        x1={arrowLeft} y1={top}
+        x2={arrowLeft} y2={bot}
+        stroke="rgba(255,255,255,0.65)" strokeWidth="1.2" strokeDasharray="3,2"
+        style={{transition:T}}
+      />
+      <line x1={arrowLeft-6} y1={top} x2={arrowLeft+6} y2={top} stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" style={{transition:T}}/>
+      <line x1={arrowLeft-6} y1={bot} x2={arrowLeft+6} y2={bot} stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" style={{transition:T}}/>
+      {/* label bg */}
+      <rect x={arrowLeft - 34} y={(top+bot)/2 - 11} width={44} height={20} rx="5" fill="rgba(0,0,0,0.32)" style={{transition:T}}/>
+      <text
+        x={arrowLeft - 12} y={(top+bot)/2 + 4}
+        textAnchor="middle" fontSize="11" fontWeight="700"
+        fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif"
+        style={{transition:T}}
+      >Peralte</text>
+
+      {/* ── PATÍN: horizontal double-arrow on top flange ── */}
+      <line
+        x1={cx - fw/2} y1={top - 14}
+        x2={cx + fw/2} y2={top - 14}
+        stroke="rgba(255,255,255,0.65)" strokeWidth="1.2" strokeDasharray="3,2"
+        style={{transition:T}}
+      />
+      <line x1={cx-fw/2} y1={top-20} x2={cx-fw/2} y2={top-8} stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" style={{transition:T}}/>
+      <line x1={cx+fw/2} y1={top-20} x2={cx+fw/2} y2={top-8} stroke="rgba(255,255,255,0.65)" strokeWidth="1.5" style={{transition:T}}/>
+      {/* label bg */}
+      <rect x={cx - 24} y={top - 34} width={48} height={20} rx="5" fill="rgba(0,0,0,0.32)" style={{transition:T}}/>
+      <text
+        x={cx} y={top - 20}
+        textAnchor="middle" fontSize="11" fontWeight="700"
+        fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif"
+        style={{transition:T}}
+      >Patín</text>
     </svg>
   );
 }
 
-// ── Fraction Picker ───────────────────────────────────────────────────────────
-function FractionPicker({ label, selectedInch, onSelect }: { label:string; selectedInch:number|null; onSelect:(v:number|null)=>void }): JSX.Element {
+// ── Thickness input (mm free-text mode) ──────────────────────────────────────
+function ThicknessMM({ label, selectedInch, onSelect }: { label:string; selectedInch:number|null; onSelect:(v:number|null)=>void }): JSX.Element {
+  const mmVal = selectedInch !== null ? (selectedInch * 25.4).toFixed(2) : "";
   return (
     <div>
-      <div style={{fontSize:12,fontWeight:700,color:"#166534",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>
-        {label} <span style={{fontWeight:400,color:"#94a3b8",textTransform:"none",letterSpacing:0,fontSize:11}}>(opcional)</span>
+      <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>
+        {label} <span style={{fontWeight:400,color:"#9ca3af",textTransform:"none",letterSpacing:0,fontSize:11}}>(opcional)</span>
       </div>
-      <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
-        <button type="button" onClick={()=>onSelect(null)} style={{flexShrink:0,minWidth:48,minHeight:48,borderRadius:12,border:`2px solid ${selectedInch===null?"#16a34a":"#e2e8f0"}`,background:selectedInch===null?"#16a34a":"#ffffff",color:selectedInch===null?"#ffffff":"#94a3b8",fontSize:16,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>—</button>
+      <div style={{position:"relative"}}>
+        <input
+          type="number"
+          inputMode="decimal"
+          placeholder="ej. 7.5"
+          value={mmVal}
+          onChange={e => {
+            const v = parseFloat(e.target.value);
+            onSelect(isNaN(v) || e.target.value==="" ? null : v / 25.4);
+          }}
+          style={{width:"100%",padding:"13px 46px 13px 16px",border:`2px solid ${selectedInch!==null?"#16a34a":"#e2e8f0"}`,borderRadius:14,fontSize:16,fontWeight:500,color:"#0f172a",fontFamily:"monospace",outline:"none",background:"#ffffff",WebkitAppearance:"none",MozAppearance:"textfield" as CSSProperties["MozAppearance"],transition:"border-color 0.2s, box-shadow 0.2s"}}
+        />
+        <span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:13,fontWeight:700,color:selectedInch!==null?"#16a34a":"#94a3b8",pointerEvents:"none"}}>mm</span>
+      </div>
+      {selectedInch!==null&&<div style={{fontSize:11,color:"#16a34a",marginTop:5,fontFamily:"monospace"}}>{(selectedInch*25.4).toFixed(2)} mm = {selectedInch.toFixed(4)}"</div>}
+    </div>
+  );
+}
+
+// ── Fraction Picker ───────────────────────────────────────────────────────────
+function FractionPicker({ label, selectedInch, onSelect, useMM=false }: { label:string; selectedInch:number|null; onSelect:(v:number|null)=>void; useMM?:boolean }): JSX.Element {
+  if (useMM) return <ThicknessMM label={label} selectedInch={selectedInch} onSelect={onSelect}/>;
+  return (
+    <div>
+      <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>
+        {label} <span style={{fontWeight:400,color:"#9ca3af",textTransform:"none",letterSpacing:0,fontSize:11}}>(opcional)</span>
+      </div>
+      <div style={{display:"flex",gap:7,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
+        <button type="button" onClick={()=>onSelect(null)} style={{flexShrink:0,minWidth:40,minHeight:38,borderRadius:10,border:`1.5px solid ${selectedInch===null?"#16a34a":"#e5e7eb"}`,background:selectedInch===null?"#16a34a":"#ffffff",color:selectedInch===null?"#ffffff":"#9ca3af",fontSize:15,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>—</button>
         {FRAC_OPTIONS.map(({label:fl,inch})=>{
           const active=selectedInch!==null&&Math.abs(selectedInch-inch)<0.001;
-          return <button key={fl} type="button" onClick={()=>onSelect(inch)} style={{flexShrink:0,minWidth:56,minHeight:48,padding:"0 12px",borderRadius:12,border:`2px solid ${active?"#16a34a":"#e2e8f0"}`,background:active?"#16a34a":"#ffffff",color:active?"#ffffff":"#1e293b",fontSize:14,fontWeight:active?700:400,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>{fl}</button>;
+          return <button key={fl} type="button" onClick={()=>onSelect(inch)} style={{flexShrink:0,minWidth:50,minHeight:38,padding:"0 10px",borderRadius:10,border:`1.5px solid ${active?"#16a34a":"#e5e7eb"}`,background:active?"#16a34a":"#ffffff",color:active?"#ffffff":"#374151",fontSize:13,fontWeight:active?700:400,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>{fl}</button>;
         })}
       </div>
-      {selectedInch!==null&&<div style={{fontSize:11,color:"#16a34a",marginTop:6,fontFamily:"monospace"}}>{selectedInch.toFixed(3)}"</div>}
+      {selectedInch!==null&&<div style={{fontSize:11,color:"#16a34a",marginTop:5,fontFamily:"monospace"}}>{selectedInch.toFixed(3)}"</div>}
     </div>
   );
 }
@@ -332,12 +420,12 @@ export default function App(): JSX.Element {
     setUnit(u);
   }
 
-  const dv=(v:number)=>fromInch(v,unit);
+  const dv=(v:number)=> unit==="in" ? `${fromInch(v,unit)} pulg` : `${fromInch(v,unit)} cm`;
 
   const inputCss: CSSProperties = {
-    width:"100%", padding:"17px 52px 17px 18px",
-    border:"2px solid #e2e8f0", borderRadius:16,
-    fontSize:22, fontWeight:400, color:"#0f172a",
+    width:"100%", padding:"12px 44px 12px 14px",
+    border:"1.5px solid #e5e7eb", borderRadius:12,
+    fontSize:15, fontWeight:500, color:"#111827",
     fontFamily:"'JetBrains Mono','Fira Mono',monospace",
     outline:"none", background:"#ffffff",
     WebkitAppearance:"none",
@@ -346,22 +434,22 @@ export default function App(): JSX.Element {
   };
 
   const card: CSSProperties = {
-    background:"#ffffff", borderRadius:20, border:"1px solid #e8ecf0",
-    padding:"20px", boxShadow:"0 1px 6px rgba(0,0,0,0.05)",
+    background:"#ffffff", borderRadius:16, border:"1px solid #e5e7eb",
+    padding:"18px", boxShadow:"0 1px 4px rgba(0,0,0,0.04)",
   };
 
   const searchBtn: CSSProperties = {
-    width:"100%", padding:"19px", border:"none", borderRadius:18,
-    fontSize:17, fontWeight:700, letterSpacing:"-0.01em",
-    display:"flex", alignItems:"center", justifyContent:"center", gap:10,
-    minHeight:60, cursor:"pointer", transition:"all 0.2s",
-    background: canSearch ? "linear-gradient(135deg,#166534,#22c55e)" : "#e8ecf0",
-    color: canSearch ? "#ffffff" : "#94a3b8",
-    boxShadow: canSearch ? "0 6px 24px rgba(22,163,74,0.4)" : "none",
+    width:"100%", padding:"15px", border:"none", borderRadius:14,
+    fontSize:15, fontWeight:700, letterSpacing:"-0.01em",
+    display:"flex", alignItems:"center", justifyContent:"center", gap:9,
+    minHeight:52, cursor:"pointer", transition:"all 0.2s",
+    background: canSearch ? "#16a34a" : "#e5e7eb",
+    color: canSearch ? "#ffffff" : "#9ca3af",
+    boxShadow: canSearch ? "0 4px 16px rgba(22,163,74,0.3)" : "none",
   };
 
   return (
-    <div style={{minHeight:"100vh",background:"#f0fdf4",fontFamily:"'Plus Jakarta Sans','DM Sans',system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:"100vh",background:"#f8f9fa",fontFamily:"'Plus Jakarta Sans','DM Sans',system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -375,33 +463,29 @@ export default function App(): JSX.Element {
         @keyframes spin{to{transform:rotate(360deg);}}
         .rc{animation:fadeUp 0.35s ease both;}
         .tap:active{transform:scale(0.96);}
-        input:focus{border-color:#16a34a!important;box-shadow:0 0 0 4px #dcfce7!important;}
+        input:focus{border-color:#16a34a!important;box-shadow:0 0 0 3px rgba(22,163,74,0.15)!important;}
       `}</style>
 
       {/* ── Header ── */}
-      <header style={{background:"#ffffff",borderBottom:"1px solid #dcfce7",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:30,boxShadow:"0 2px 12px rgba(22,101,52,0.08)"}}>
+      <header style={{background:"#ffffff",borderBottom:"1px solid #e5e7eb",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:30,boxShadow:"0 1px 6px rgba(0,0,0,0.06)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <img
-            src="/logo.jpg"
-            alt="Surtiaceros"
-            style={{height:isMobile?44:52,width:"auto",objectFit:"contain",flexShrink:0}}
-          />
-          <div style={{fontSize:11,color:"#16a34a",fontWeight:600,letterSpacing:"0.03em",display:isMobile?"none":"block"}}>Identificador de Vigas</div>
+          <img src="/logo.jpg" alt="Surtiaceros" style={{height:isMobile?40:48,width:"auto",objectFit:"contain",flexShrink:0}}/>
+          <div style={{fontSize:11,color:"#6b7280",fontWeight:600,letterSpacing:"0.03em",display:isMobile?"none":"block"}}>Identificador de Vigas</div>
         </div>
-        <div style={{background:"#f0fdf4",border:"1.5px solid #bbf7d0",borderRadius:20,padding:"5px 14px",fontSize:12,color:"#15803d",fontWeight:700}}>{BEAMS.length} perfiles</div>
+        <div style={{background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:20,padding:"4px 12px",fontSize:12,color:"#374151",fontWeight:600}}>{BEAMS.length} perfiles</div>
       </header>
 
-      {/* ── Hero banner ── */}
-      <div style={{background:"linear-gradient(150deg,#14532d 0%,#15803d 60%,#22c55e 100%)",padding:isMobile?"24px 20px 28px":"36px 32px 44px",textAlign:"center",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:-50,right:-50,width:180,height:180,background:"rgba(255,255,255,0.06)",borderRadius:"50%",pointerEvents:"none"}}/>
-        <div style={{position:"absolute",bottom:-70,left:-40,width:220,height:220,background:"rgba(255,255,255,0.04)",borderRadius:"50%",pointerEvents:"none"}}/>
-        <div style={{position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:14}}>
-          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?80:100}/>
+      {/* ── Hero banner — dark, not all-green ── */}
+      <div style={{background:"linear-gradient(160deg,#111827 0%,#1f2937 60%,#166534 100%)",padding:isMobile?"28px 20px 32px":"40px 32px 48px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,background:"rgba(22,163,74,0.08)",borderRadius:"50%",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:-60,left:-30,width:200,height:200,background:"rgba(22,163,74,0.05)",borderRadius:"50%",pointerEvents:"none"}}/>
+        <div style={{position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
+          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?160:200}/>
           <div>
-            <h1 style={{fontSize:isMobile?24:30,fontWeight:800,color:"#ffffff",letterSpacing:"-0.03em",lineHeight:1.2,marginBottom:8}}>
+            <h1 style={{fontSize:isMobile?22:28,fontWeight:800,color:"#ffffff",letterSpacing:"-0.03em",lineHeight:1.2,marginBottom:6}}>
               Encuentra tu viga de acero
             </h1>
-            <p style={{fontSize:isMobile?13:15,color:"rgba(255,255,255,0.75)",lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>
+            <p style={{fontSize:isMobile?12:14,color:"rgba(255,255,255,0.55)",lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>
               Ingresa dimensiones → perfil más cercano + precio inmediato
             </p>
           </div>
@@ -409,60 +493,65 @@ export default function App(): JSX.Element {
       </div>
 
       {/* ── Form ── */}
-      <main style={{flex:1,padding:isMobile?"18px 14px 140px":"28px 24px 60px",maxWidth:580,width:"100%",margin:"0 auto",display:"flex",flexDirection:"column",gap:14}}>
+      <main style={{flex:1,padding:isMobile?"16px 14px 130px":"24px 24px 56px",maxWidth:580,width:"100%",margin:"0 auto",display:"flex",flexDirection:"column",gap:12}}>
 
         {/* Unit toggle */}
-        <div style={{...card,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px"}}>
-          <span style={{fontSize:13,fontWeight:700,color:"#166534"}}>Unidad</span>
-          <div style={{display:"flex",background:"#f0fdf4",borderRadius:12,padding:3,gap:2}}>
-            {(["in","cm"] as const).map(u=>(
-              <button key={u} type="button" onClick={()=>toggleUnit(u)} className="tap" style={{padding:"10px 24px",borderRadius:10,border:"none",cursor:"pointer",fontSize:14,fontWeight:700,transition:"all 0.15s",background:unit===u?"#16a34a":"transparent",color:unit===u?"#ffffff":"#94a3b8",boxShadow:unit===u?"0 2px 8px rgba(22,163,74,0.4)":"none",minWidth:64,minHeight:44}}>{u}</button>
+        <div style={{...card,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px"}}>
+          <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>Unidad</span>
+          <div style={{display:"flex",background:"#f3f4f6",borderRadius:10,padding:3,gap:2}}>
+            {([
+              { val:"in" as const, label:"Pulgadas" },
+              { val:"cm" as const, label:"Sistema Métrico" },
+            ]).map(({val:u, label})=>(
+              <button key={u} type="button" onClick={()=>toggleUnit(u)} className="tap" style={{padding:"8px 16px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,transition:"all 0.15s",background:unit===u?"#16a34a":"transparent",color:unit===u?"#ffffff":"#6b7280",boxShadow:unit===u?"0 1px 4px rgba(22,163,74,0.35)":"none",minHeight:36}}>{label}</button>
             ))}
           </div>
         </div>
 
         {/* Required dims */}
-        <div style={{...card,display:"flex",flexDirection:"column",gap:16}}>
-          <div style={{fontSize:12,fontWeight:700,color:"#166534",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6}}>
+        <div style={{...card,display:"flex",flexDirection:"column",gap:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6}}>
             Dimensiones principales
             <span style={{background:"#fef2f2",color:"#ef4444",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20}}>Requerido</span>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12}}>
             {[
               {label:"Altura / Peralte (h)", val:height, set:setHeight, ph:unit==="in"?'ej. 8"':"ej. 20", hint:unit==="in"?'4\" – 44\"':"10 – 112 cm"},
               {label:"Ancho de Patín (b)", val:flange, set:setFlange, ph:unit==="in"?'ej. 6"':"ej. 15", hint:unit==="in"?'3.9\" – 16.2\"':"10 – 41 cm"},
             ].map(({label,val,set,ph,hint})=>(
               <div key={label}>
-                <label style={{display:"block",fontSize:12,fontWeight:700,color:"#166534",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8}}>{label}</label>
+                <label style={{display:"block",fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:7}}>{label}</label>
                 <div style={{position:"relative"}}>
-                  <input type="number" inputMode="decimal" value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={ph} style={{...inputCss,borderColor:val?"#16a34a":"#e2e8f0"}}/>
-                  <span style={{position:"absolute",right:16,top:"50%",transform:"translateY(-50%)",fontSize:13,fontWeight:700,color:val?"#16a34a":"#94a3b8",fontFamily:"monospace",pointerEvents:"none"}}>{unit}</span>
+                  <input type="number" inputMode="decimal" value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={ph} style={{...inputCss,borderColor:val?"#16a34a":"#e5e7eb"}}/>
+                  <span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:11,fontWeight:700,color:val?"#16a34a":"#9ca3af",fontFamily:"monospace",pointerEvents:"none"}}>{unit==="in"?"pulg":"cm"}</span>
                 </div>
-                <div style={{fontSize:11,color:"#94a3b8",marginTop:5}}>{hint}</div>
+                <div style={{fontSize:11,color:"#9ca3af",marginTop:4}}>{hint}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Thicknesses */}
-        <div style={{...card,display:"flex",flexDirection:"column",gap:20}}>
-          <div style={{fontSize:12,fontWeight:700,color:"#166534",letterSpacing:"0.06em",textTransform:"uppercase"}}>Espesores (pulgadas)</div>
-          <FractionPicker label="Alma (tw)" selectedInch={webInch} onSelect={setWebInch}/>
-          <div style={{height:1,background:"#f0fdf4"}}/>
-          <FractionPicker label="Patín (tf)" selectedInch={flangeTInch} onSelect={setFlangeTInch}/>
+        <div style={{...card,display:"flex",flexDirection:"column",gap:18}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase"}}>
+            Espesores {unit==="cm"?"(mm)":"(pulgadas)"}
+          </div>
+          <FractionPicker label="Alma (tw)" selectedInch={webInch} onSelect={setWebInch} useMM={unit==="cm"}/>
+          <div style={{height:1,background:"#f3f4f6"}}/>
+          <FractionPicker label="Patín (tf)" selectedInch={flangeTInch} onSelect={setFlangeTInch} useMM={unit==="cm"}/>
         </div>
 
         {/* Length */}
         <div style={{...card}}>
-          <div style={{fontSize:12,fontWeight:700,color:"#166534",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:14}}>Longitud de viga</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:12}}>Longitud de viga</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             {LENGTH_OPTIONS.map(ft=>{
               const active=lengthFt===ft;
               return (
-                <button key={ft} type="button" onClick={()=>setLengthFt(ft)} className="tap" style={{padding:"20px 12px",borderRadius:16,border:`2px solid ${active?"#16a34a":"#e2e8f0"}`,background:active?"#f0fdf4":"#ffffff",cursor:"pointer",transition:"all 0.15s",textAlign:"center",boxShadow:active?"0 0 0 4px #dcfce7":undefined,position:"relative",overflow:"hidden"}}>
-                  {active&&<div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#16a34a,#4ade80)"}}/>}
-                  <div style={{fontSize:28,fontWeight:800,color:active?"#15803d":"#64748b",fontFamily:"monospace",lineHeight:1}}>{ft}<span style={{fontSize:15,fontWeight:500}}> ft</span></div>
-                  <div style={{fontSize:13,color:active?"#16a34a":"#94a3b8",marginTop:4,fontWeight:600}}>{(ft*FT_TO_M).toFixed(1)} m</div>
+                <button key={ft} type="button" onClick={()=>setLengthFt(ft)} className="tap" style={{padding:"14px 12px",borderRadius:14,border:`2px solid ${active?"#16a34a":"#e5e7eb"}`,background:active?"#ffffff":"#ffffff",cursor:"pointer",transition:"all 0.15s",textAlign:"center",boxShadow:active?"0 0 0 3px rgba(22,163,74,0.15)":undefined,position:"relative",overflow:"hidden"}}>
+                  {active&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:"#16a34a"}}/>}
+                  <div style={{fontSize:22,fontWeight:800,color:active?"#111827":"#6b7280",fontFamily:"monospace",lineHeight:1}}>{ft}<span style={{fontSize:13,fontWeight:500}}> ft</span></div>
+                  <div style={{fontSize:12,color:active?"#16a34a":"#9ca3af",marginTop:3,fontWeight:600}}>{(ft*FT_TO_M).toFixed(1)} m</div>
                 </button>
               );
             })}
@@ -473,8 +562,8 @@ export default function App(): JSX.Element {
         {!isMobile && (
           <button type="button" onClick={doSearch} disabled={!canSearch} className="tap" style={searchBtn}>
             {loading
-              ? <><svg width="20" height="20" viewBox="0 0 20 20" style={{animation:"spin 0.7s linear infinite"}}><circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" fill="none"/><path d="M10 2 A8 8 0 0 1 18 10" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/></svg>Buscando...</>
-              : <><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="2.2"/><path d="M13 13L17 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>Buscar Perfil</>
+              ? <><svg width="18" height="18" viewBox="0 0 20 20" style={{animation:"spin 0.7s linear infinite"}}><circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" fill="none"/><path d="M10 2 A8 8 0 0 1 18 10" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/></svg>Buscando...</>
+              : <><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="2.2"/><path d="M13 13L17 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>Buscar Perfil</>
             }
           </button>
         )}
@@ -482,51 +571,51 @@ export default function App(): JSX.Element {
         {/* Results */}
         {searched && !loading && results.length > 0 && (
           <div>
-            <div style={{fontSize:12,fontWeight:700,color:"#166534",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12,paddingLeft:2}}>Perfiles más cercanos</div>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>Perfiles más cercanos</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {results.map(({beam,dist},i)=>{
                 const isTop=i===0, isExp=selected?.id===beam.id;
                 const score=Math.max(0,100-dist*200);
                 const mLabel=score>90?"Exacto":score>70?"Muy cercano":score>50?"Cercano":"Aproximado";
-                const mColor=score>90?"#16a34a":score>70?"#3b82f6":score>50?"#f59e0b":"#94a3b8";
+                const mColor=score>90?"#16a34a":score>70?"#3b82f6":score>50?"#f59e0b":"#9ca3af";
                 const weightKg=beam.lbsPerFt*lengthFt*LBS_TO_KG;
                 const price=weightKg*PRICE_PER_KG;
 
                 return (
                   <div key={beam.id} className="rc" style={{animationDelay:`${i*0.07}s`}}>
                     <div onClick={()=>setSelected(isExp?null:beam)} className="tap" style={{
-                      background:isTop?"linear-gradient(135deg,#14532d,#16a34a)":"#ffffff",
-                      border:`2px solid ${isTop?"#14532d":isExp?"#16a34a":"#e2e8f0"}`,
-                      borderRadius:isExp?"18px 18px 0 0":18,
-                      padding:"18px 18px", cursor:"pointer",
-                      display:"flex", alignItems:"center", gap:14,
+                      background:isTop?"#111827":"#ffffff",
+                      border:`1.5px solid ${isTop?"#111827":isExp?"#16a34a":"#e5e7eb"}`,
+                      borderRadius:isExp?"16px 16px 0 0":16,
+                      padding:"16px 16px", cursor:"pointer",
+                      display:"flex", alignItems:"center", gap:12,
                       userSelect:"none",
-                      boxShadow:isTop?"0 6px 24px rgba(20,83,45,0.35)":"0 1px 4px rgba(0,0,0,0.04)"
+                      boxShadow:isTop?"0 4px 16px rgba(0,0,0,0.2)":"0 1px 3px rgba(0,0,0,0.04)"
                     }}>
-                      <div style={{width:38,height:38,borderRadius:11,flexShrink:0,background:isTop?"rgba(255,255,255,0.15)":"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:isTop?"#ffffff":"#15803d"}}>{i+1}</div>
+                      <div style={{width:34,height:34,borderRadius:10,flexShrink:0,background:isTop?"rgba(255,255,255,0.1)":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:isTop?"rgba(255,255,255,0.7)":"#374151"}}>{i+1}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:16,fontWeight:700,color:isTop?"#ffffff":"#0f172a",fontFamily:"'JetBrains Mono',monospace",letterSpacing:"-0.02em"}}>
+                        <div style={{fontSize:15,fontWeight:700,color:isTop?"#ffffff":"#111827",fontFamily:"'JetBrains Mono',monospace",letterSpacing:"-0.02em"}}>
                           Viga {beam.name}
                         </div>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:5}}>
-                          <span style={{width:7,height:7,borderRadius:"50%",background:isTop?"rgba(255,255,255,0.6)":mColor,flexShrink:0,display:"inline-block"}}/>
-                          <span style={{fontSize:11,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",color:isTop?"rgba(255,255,255,0.7)":mColor}}>{mLabel}</span>
+                        <div style={{display:"flex",alignItems:"center",gap:5,marginTop:4}}>
+                          <span style={{width:6,height:6,borderRadius:"50%",background:isTop?"rgba(255,255,255,0.5)":mColor,flexShrink:0,display:"inline-block"}}/>
+                          <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",color:isTop?"rgba(255,255,255,0.55)":mColor}}>{mLabel}</span>
                         </div>
                       </div>
                       <div style={{textAlign:"right",flexShrink:0}}>
-                        <div style={{fontSize:16,fontWeight:800,color:isTop?"#ffffff":"#15803d",fontFamily:"monospace"}}>{fmtPeso(price)}</div>
-                        <div style={{fontSize:12,color:isTop?"rgba(255,255,255,0.55)":"#94a3b8",marginTop:2,fontWeight:500}}>{Math.round(weightKg)} kg · {lengthFt} ft</div>
+                        <div style={{fontSize:15,fontWeight:800,color:isTop?"#4ade80":"#16a34a",fontFamily:"monospace"}}>{fmtPeso(price)}</div>
+                        <div style={{fontSize:11,color:isTop?"rgba(255,255,255,0.4)":"#9ca3af",marginTop:2,fontWeight:500}}>{Math.round(weightKg)} kg · {lengthFt} ft</div>
                       </div>
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{flexShrink:0,transform:isExp?"rotate(90deg)":"none",transition:"transform 0.2s",opacity:0.5}}>
-                        <path d="M7 5l4 4-4 4" stroke={isTop?"#ffffff":"#64748b"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <svg width="16" height="16" viewBox="0 0 18 18" fill="none" style={{flexShrink:0,transform:isExp?"rotate(90deg)":"none",transition:"transform 0.2s",opacity:0.4}}>
+                        <path d="M7 5l4 4-4 4" stroke={isTop?"#ffffff":"#374151"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </div>
 
                     {isExp && (
-                      <div style={{animation:"fadeUp 0.2s ease",background:"#ffffff",border:"2px solid #16a34a",borderTop:"none",borderRadius:"0 0 18px 18px",padding:"20px 18px 22px"}}>
-                        {/* Price card */}
-                        <div style={{background:"linear-gradient(135deg,#14532d,#15803d)",borderRadius:14,padding:"18px 20px",marginBottom:18}}>
-                          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:14}}>
+                      <div style={{animation:"fadeUp 0.2s ease",background:"#ffffff",border:"1.5px solid #e5e7eb",borderTop:"none",borderRadius:"0 0 16px 16px",padding:"18px 16px 20px",boxShadow:"0 4px 12px rgba(0,0,0,0.06)"}}>
+                        {/* Price card — dark */}
+                        <div style={{background:"#111827",borderRadius:12,padding:"16px 18px",marginBottom:16}}>
+                          <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>
                             Precio — {lengthFt} ft ({(lengthFt*FT_TO_M).toFixed(1)} m)
                           </div>
                           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
@@ -536,37 +625,37 @@ export default function App(): JSX.Element {
                               ["Total c/IVA",fmtPeso(beam.lbsPerFt*lengthFt*LBS_TO_KG*PRICE_PER_KG)],
                             ].map(([l,v],j)=>(
                               <div key={l as string}>
-                                <div style={{fontSize:10,color:"rgba(255,255,255,0.55)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:5,fontWeight:600}}>{l}</div>
-                                <div style={{fontSize:j===2?20:16,fontWeight:j===2?800:600,color:"#ffffff",fontFamily:"monospace",lineHeight:1}}>{v}</div>
+                                <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4,fontWeight:600}}>{l}</div>
+                                <div style={{fontSize:j===2?18:14,fontWeight:j===2?800:600,color:j===2?"#4ade80":"#ffffff",fontFamily:"monospace",lineHeight:1}}>{v}</div>
                               </div>
                             ))}
                           </div>
                         </div>
 
                         {/* Specs */}
-                        <div style={{fontSize:12,fontWeight:700,color:"#166534",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:12}}>Especificaciones</div>
-                        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:18}}>
+                        <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>Especificaciones</div>
+                        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
                           {[
-                            ["Altura h",`${dv(beam.height)} ${unit}`],
-                            ["Patín b",beam.flange!=null?`${dv(beam.flange)} ${unit}`:"N/D"],
+                            ["Altura h",`${dv(beam.height)}`],
+                            ["Patín b",beam.flange!=null?`${dv(beam.flange)}`:"N/D"],
                             ["Alma tw",fracLabel(beam.web)],
                             ["Esp. tf",fracLabel(beam.flangeT)],
                             ["lb/ft",`${beam.lbsPerFt}`],
                             ["kg/m",`${(beam.lbsPerFt*LBS_TO_KG).toFixed(2)}`],
                           ].map(([l,v])=>(
-                            <div key={l as string} style={{background:"#f0fdf4",border:"1px solid #dcfce7",borderRadius:12,padding:"10px 12px"}}>
-                              <div style={{fontSize:10,color:"#15803d",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4,fontWeight:700}}>{l}</div>
-                              <div style={{fontSize:13,color:"#0f172a",fontFamily:"monospace",fontWeight:600}}>{v}</div>
+                            <div key={l as string} style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:10,padding:"9px 10px"}}>
+                              <div style={{fontSize:10,color:"#6b7280",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:3,fontWeight:600}}>{l}</div>
+                              <div style={{fontSize:12,color:"#111827",fontFamily:"monospace",fontWeight:600}}>{v}</div>
                             </div>
                           ))}
                         </div>
 
-                        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                          <button type="button" className="tap" style={{width:"100%",padding:"17px",background:"linear-gradient(135deg,#166534,#22c55e)",color:"#ffffff",border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 16px rgba(22,163,74,0.4)",minHeight:54}}>
+                        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                          <button type="button" className="tap" style={{width:"100%",padding:"13px",background:"#111827",color:"#ffffff",border:"none",borderRadius:12,fontSize:14,fontWeight:700,cursor:"pointer",minHeight:46}}>
                             Solicitar cotización
                           </button>
                           <a
-                            href={`https://wa.me/526616137038?text=${encodeURIComponent(
+                            href={`https://wa.me/526616137040?text=${encodeURIComponent(
                               `Hola Surtiaceros, me interesa cotizar la siguiente viga:\n\n` +
                               `*Viga ${beam.name}*\n` +
                               `📏 Longitud: ${lengthFt} ft (${(lengthFt*FT_TO_M).toFixed(1)} m)\n` +
@@ -574,11 +663,9 @@ export default function App(): JSX.Element {
                               `💰 Precio estimado: ${fmtPeso(beam.lbsPerFt*lengthFt*LBS_TO_KG*PRICE_PER_KG)} (c/IVA)\n\n` +
                               `¿Pueden confirmar disponibilidad y precio final?`
                             )}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="tap"
-                            style={{width:"100%",padding:"17px",background:"#25d366",color:"#ffffff",border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer",minHeight:54,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none",boxShadow:"0 4px 16px rgba(37,211,102,0.35)"}}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            target="_blank" rel="noopener noreferrer" className="tap"
+                            style={{width:"100%",padding:"13px",background:"#25d366",color:"#ffffff",border:"none",borderRadius:12,fontSize:14,fontWeight:700,cursor:"pointer",minHeight:46,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none"}}>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                               <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.121 1.532 5.856L.057 23.882l6.198-1.627A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.52-5.184-1.426l-.371-.22-3.681.965.982-3.588-.242-.38A9.937 9.937 0 0 1 2 12C2 6.478 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
                             </svg>
@@ -595,7 +682,7 @@ export default function App(): JSX.Element {
         )}
 
         {!searched && !isMobile && (
-          <div style={{textAlign:"center",color:"#94a3b8",fontSize:13,paddingTop:4}}>
+          <div style={{textAlign:"center",color:"#9ca3af",fontSize:12,paddingTop:4}}>
             {BEAMS.length} perfiles · 20 ft y 40 ft · $40 MXN/kg con IVA
           </div>
         )}
@@ -603,28 +690,28 @@ export default function App(): JSX.Element {
 
       {/* ── Fixed bottom search bar (mobile) ── */}
       {isMobile && (
-        <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,background:"#ffffff",borderTop:"1px solid #dcfce7",padding:"12px 16px",paddingBottom:"calc(12px + env(safe-area-inset-bottom))",boxShadow:"0 -4px 24px rgba(20,83,45,0.12)"}}>
+        <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,background:"#ffffff",borderTop:"1px solid #e5e7eb",padding:"10px 16px",paddingBottom:"calc(10px + env(safe-area-inset-bottom))",boxShadow:"0 -2px 16px rgba(0,0,0,0.08)"}}>
           {searched && !loading && (
-            <div style={{fontSize:12,color:"#16a34a",fontWeight:700,textAlign:"center",marginBottom:8}}>
-              {results.length} coincidencias encontradas · toca para ver precio
+            <div style={{fontSize:11,color:"#16a34a",fontWeight:700,textAlign:"center",marginBottom:7}}>
+              {results.length} coincidencias · toca para ver precio
             </div>
           )}
           <button type="button" onClick={doSearch} disabled={!canSearch} className="tap" style={searchBtn}>
             {loading
-              ? <><svg width="20" height="20" viewBox="0 0 20 20" style={{animation:"spin 0.7s linear infinite"}}><circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" fill="none"/><path d="M10 2 A8 8 0 0 1 18 10" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/></svg>Buscando...</>
-              : <><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="2.2"/><path d="M13 13L17 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>Buscar Perfil</>
+              ? <><svg width="18" height="18" viewBox="0 0 20 20" style={{animation:"spin 0.7s linear infinite"}}><circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" fill="none"/><path d="M10 2 A8 8 0 0 1 18 10" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/></svg>Buscando...</>
+              : <><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="2.2"/><path d="M13 13L17 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>Buscar Perfil</>
             }
           </button>
         </div>
       )}
 
-      <footer style={{background:"#f0fdf4",borderTop:"1px solid #dcfce7",padding:"18px 20px",textAlign:"center",marginBottom:isMobile?"84px":0}}>
-        <img src="/logo.jpg" alt="Surtiaceros" style={{height:36,width:"auto",objectFit:"contain",marginBottom:10,opacity:0.7}}/>
+      <footer style={{background:"#ffffff",borderTop:"1px solid #e5e7eb",padding:"18px 20px",textAlign:"center",marginBottom:isMobile?"80px":0}}>
+        <img src="/logo.jpg" alt="Surtiaceros" style={{height:32,width:"auto",objectFit:"contain",marginBottom:10,opacity:0.6}}/>
         <p style={{fontSize:11,color:"#6b7280",lineHeight:1.6,maxWidth:400,margin:"0 auto"}}>
-          Este es un programa de <strong style={{color:"#15803d"}}>SURTIACEROS DEL PACIFICO SA DE CV</strong>.<br/>
+          Este es un programa de <strong style={{color:"#111827"}}>SURTIACEROS DEL PACIFICO SA DE CV</strong>.<br/>
           Todos los derechos Reservados © {new Date().getFullYear()}
         </p>
-        <p style={{fontSize:10,color:"#9ca3af",marginTop:6}}>v2.1 · Precios estimados, sujetos a confirmación</p>
+        <p style={{fontSize:10,color:"#9ca3af",marginTop:6}}>v2.2 · Precios estimados, sujetos a confirmación</p>
       </footer>
     </div>
   );
