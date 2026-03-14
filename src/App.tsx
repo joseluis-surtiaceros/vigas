@@ -558,7 +558,7 @@ export default function App(): JSX.Element {
       <header style={{background:"#ffffff",borderBottom:"1px solid #e5e7eb",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:30,boxShadow:"0 1px 6px rgba(0,0,0,0.06)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <a href="https://surtiaceros.com" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:8,textDecoration:"none"}}>
-            <img src="/logo.jpg" alt="Surtiaceros" style={{height:isMobile?36:44,width:"auto",objectFit:"contain",flexShrink:0}}/>
+            <img src="/logo_surtiaceros__5_.jpg" alt="Surtiaceros" style={{height:isMobile?36:44,width:"auto",objectFit:"contain",flexShrink:0}}/>
             {!isMobile && <span style={{fontSize:11,color:"#16a34a",fontWeight:600,letterSpacing:"0.02em",borderBottom:"1px solid #bbf7d0"}}>surtiaceros.com</span>}
           </a>
         </div>
@@ -1020,7 +1020,7 @@ export default function App(): JSX.Element {
         {/* Logo + website link */}
         <div style={{marginBottom:20}}>
           <a href="https://surtiaceros.com" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",flexDirection:"column",alignItems:"center",gap:8,textDecoration:"none"}}>
-            <img src="/logo.jpg" alt="Surtiaceros" style={{height:40,width:"auto",objectFit:"contain",opacity:0.85,filter:"brightness(1.1)"}}/>
+            <img src="/logo_surtiaceros__5_.jpg" alt="Surtiaceros" style={{height:40,width:"auto",objectFit:"contain",opacity:0.85,filter:"brightness(1.1)"}}/>
             <span style={{fontSize:13,color:"#4ade80",fontWeight:600,letterSpacing:"0.02em",borderBottom:"1px solid rgba(74,222,128,0.4)",paddingBottom:1}}>www.surtiaceros.com</span>
           </a>
         </div>
