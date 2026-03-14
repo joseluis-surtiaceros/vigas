@@ -423,9 +423,9 @@ function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200, heightInch=null, f
   );
 }
 
-// ── Thickness input (mm free-text mode) ──────────────────────────────────────
+// ── Thickness input (mm free-text mode, integers only) ───────────────────────
 function ThicknessMM({ label, selectedInch, onSelect }: { label:string; selectedInch:number|null; onSelect:(v:number|null)=>void }): JSX.Element {
-  const mmVal = selectedInch !== null ? (selectedInch * 25.4).toFixed(2) : "";
+  const mmVal = selectedInch !== null ? Math.round(selectedInch * 25.4).toString() : "";
   return (
     <div>
       <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>
@@ -434,18 +434,20 @@ function ThicknessMM({ label, selectedInch, onSelect }: { label:string; selected
       <div style={{position:"relative"}}>
         <input
           type="number"
-          inputMode="decimal"
-          placeholder="ej. 7.5"
+          inputMode="numeric"
+          placeholder="ej. 8"
           value={mmVal}
+          step="1"
+          min="1"
           onChange={e => {
-            const v = parseFloat(e.target.value);
+            const v = parseInt(e.target.value, 10);
             onSelect(isNaN(v) || e.target.value==="" ? null : v / 25.4);
           }}
           style={{width:"100%",padding:"13px 46px 13px 16px",border:`2px solid ${selectedInch!==null?"#16a34a":"#e2e8f0"}`,borderRadius:14,fontSize:16,fontWeight:500,color:"#0f172a",fontFamily:"monospace",outline:"none",background:"#ffffff",WebkitAppearance:"none",MozAppearance:"textfield" as CSSProperties["MozAppearance"],transition:"border-color 0.2s, box-shadow 0.2s"}}
         />
         <span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:13,fontWeight:700,color:selectedInch!==null?"#16a34a":"#94a3b8",pointerEvents:"none"}}>mm</span>
       </div>
-      {selectedInch!==null&&<div style={{fontSize:11,color:"#16a34a",marginTop:5,fontFamily:"monospace"}}>{(selectedInch*25.4).toFixed(2)} mm = {selectedInch.toFixed(4)}"</div>}
+      {selectedInch!==null&&<div style={{fontSize:11,color:"#16a34a",marginTop:5,fontFamily:"monospace"}}>{Math.round(selectedInch*25.4)} mm ≈ {nearestFrac(selectedInch)}</div>}
     </div>
   );
 }
@@ -560,7 +562,7 @@ export default function App(): JSX.Element {
   };
 
   return (
-    <div style={{minHeight:"100vh",background:"#f8f9fa",fontFamily:"'Plus Jakarta Sans','DM Sans',system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:"100vh",background:"#f8f9fa",fontFamily:"'Plus Jakarta Sans','DM Sans',system-ui,sans-serif",fontSize:"15px",display:"flex",flexDirection:"column"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -591,7 +593,7 @@ export default function App(): JSX.Element {
       <header style={{background:"#ffffff",borderBottom:"1px solid #e5e7eb",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:30,boxShadow:"0 1px 6px rgba(0,0,0,0.06)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <a href="https://surtiaceros.com" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:8,textDecoration:"none"}}>
-            <img src="/logo_surtiaceros__5_.jpg" alt="Surtiaceros" style={{height:isMobile?36:44,width:"auto",objectFit:"contain",flexShrink:0}}/>
+            <img src="/logo.jpg" alt="Surtiaceros" style={{height:isMobile?36:44,width:"auto",objectFit:"contain",flexShrink:0}}/>
             {!isMobile && <span style={{fontSize:11,color:"#16a34a",fontWeight:600,letterSpacing:"0.02em",borderBottom:"1px solid #bbf7d0"}}>surtiaceros.com</span>}
           </a>
         </div>
@@ -636,7 +638,7 @@ export default function App(): JSX.Element {
         maxHeight: isMobile ? 140 : 200,
       }}>
         <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
-          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?85:130} heightInch={svgH} flangeInch={svgF} webInch={svgW} flangeTInch={svgFT}/>
+          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?105:160} heightInch={svgH} flangeInch={svgF} webInch={svgW} flangeTInch={svgFT}/>
         </div>
       </div>
 
@@ -898,7 +900,7 @@ export default function App(): JSX.Element {
             <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
               <BeamSVG
                 hR={catHR} fR={catFR} wR={catWR} ftR={catFTR}
-                size={isMobile?85:130}
+                size={isMobile?105:160}
                 heightInch={catBeamObj?.height ?? null}
                 flangeInch={catBeamObj?.flange ?? null}
                 webInch={catBeamObj?.web ?? null}
@@ -1053,7 +1055,7 @@ export default function App(): JSX.Element {
         {/* Logo + website link */}
         <div style={{marginBottom:20}}>
           <a href="https://surtiaceros.com" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",flexDirection:"column",alignItems:"center",gap:8,textDecoration:"none"}}>
-            <img src="/logo_surtiaceros__5_.jpg" alt="Surtiaceros" style={{height:40,width:"auto",objectFit:"contain",opacity:0.85,filter:"brightness(1.1)"}}/>
+            <img src="/logo.jpg" alt="Surtiaceros" style={{height:40,width:"auto",objectFit:"contain",opacity:0.85,filter:"brightness(1.1)"}}/>
             <span style={{fontSize:13,color:"#4ade80",fontWeight:600,letterSpacing:"0.02em",borderBottom:"1px solid rgba(74,222,128,0.4)",paddingBottom:1}}>www.surtiaceros.com</span>
           </a>
         </div>
