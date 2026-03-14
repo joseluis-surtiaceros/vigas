@@ -300,7 +300,7 @@ function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200, heightInch=null, f
   const wt = Math.max(4, size * 0.018 + wR * size * 0.05);
   const ft = Math.max(5, size * 0.024 + ftR * size * 0.044);
 
-  const pad = size * 0.55;
+  const pad = size * 0.32;  // tight padding — just enough for labels
   const W = size + pad * 2;
   const H = size + pad * 2;
   const cx = W / 2;
@@ -452,12 +452,28 @@ export default function App(): JSX.Element {
   const [catLength, setCatLength] = useState<LengthFt>(20);
   const [catSelected, setCatSelected] = useState<string|null>(null);
 
+  // Beam shown in catalog animation — selected beam or default
+  const catBeamObj = BEAMS.find(b => b.id === catSelected) ?? null;
+  const catHR  = catBeamObj ? Math.max(0,Math.min(1,(catBeamObj.height-4)/40))        : 0.3;
+  const catFR  = catBeamObj ? Math.max(0,Math.min(1,((catBeamObj.flange??8)-3.5)/13)) : 0.4;
+  const catWR  = catBeamObj ? Math.max(0,Math.min(1,(catBeamObj.web-0.17)/1.3))       : 0.4;
+  const catFTR = catBeamObj ? Math.max(0,Math.min(1,(catBeamObj.flangeT-0.17)/2.1))   : 0.4;
+
   const hI = height ? toInch(parseFloat(height),unit) : null;
   const fI = flange ? toInch(parseFloat(flange),unit) : null;
-  const hR = hI ? Math.max(0,Math.min(1,(hI-4)/40)) : 0.3;
-  const fR = fI ? Math.max(0,Math.min(1,(fI-3.5)/13)) : 0.4;
-  const wR = webInch ? Math.max(0,Math.min(1,(webInch-0.17)/1.3)) : 0.4;
-  const ftR = flangeTInch ? Math.max(0,Math.min(1,(flangeTInch-0.17)/2.1)) : 0.4;
+
+  // When a result is expanded, animate the beam to that beam's exact dimensions
+  const dispBeam = selected ?? null;
+  const hR  = dispBeam ? Math.max(0,Math.min(1,(dispBeam.height-4)/40))               : (hI ? Math.max(0,Math.min(1,(hI-4)/40)) : 0.3);
+  const fR  = dispBeam ? Math.max(0,Math.min(1,((dispBeam.flange??8)-3.5)/13))        : (fI ? Math.max(0,Math.min(1,(fI-3.5)/13)) : 0.4);
+  const wR  = dispBeam ? Math.max(0,Math.min(1,(dispBeam.web-0.17)/1.3))              : (webInch ? Math.max(0,Math.min(1,(webInch-0.17)/1.3)) : 0.4);
+  const ftR = dispBeam ? Math.max(0,Math.min(1,(dispBeam.flangeT-0.17)/2.1))          : (flangeTInch ? Math.max(0,Math.min(1,(flangeTInch-0.17)/2.1)) : 0.4);
+
+  // Dimension labels: show selected beam's values, else typed input values
+  const svgH  = dispBeam ? dispBeam.height        : hI;
+  const svgF  = dispBeam ? (dispBeam.flange ?? null) : fI;
+  const svgW  = dispBeam ? dispBeam.web           : webInch;
+  const svgFT = dispBeam ? dispBeam.flangeT       : flangeTInch;
   const canSearch = !!(height && flange && !loading);
 
   function doSearch() {
@@ -482,9 +498,9 @@ export default function App(): JSX.Element {
 
 
   const inputCss: CSSProperties = {
-    width:"100%", padding:"12px 44px 12px 14px",
+    width:"100%", padding:"11px 44px 11px 14px",
     border:"1.5px solid #e5e7eb", borderRadius:12,
-    fontSize:15, fontWeight:500, color:"#111827",
+    fontSize:16, fontWeight:500, color:"#111827",  // 16px prevents iOS auto-zoom
     fontFamily:"'JetBrains Mono','Fira Mono',monospace",
     outline:"none", background:"#ffffff",
     WebkitAppearance:"none",
@@ -515,6 +531,8 @@ export default function App(): JSX.Element {
         html{-webkit-text-size-adjust:100%;}
         input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
         input[type=number]{-moz-appearance:textfield;}
+        /* Prevent iOS zoom on focus — font-size must be ≥16px */
+        input,select,textarea{font-size:16px!important;}
         button,input{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
         *{-webkit-font-smoothing:antialiased;}
         ::-webkit-scrollbar{display:none;}
@@ -572,15 +590,17 @@ export default function App(): JSX.Element {
       {/* ── Beam SVG — sticky so it stays on screen while form scrolls ── */}
       <div style={{
         background:"linear-gradient(180deg,#1f2937 0%,#111827 100%)",
-        padding:isMobile?"10px 12px 14px":"16px 32px 20px",
+        padding:isMobile?"2px 12px 4px":"8px 32px 10px",
         textAlign:"center",
         position:"sticky",
         top: isMobile ? 56 : 64,
         zIndex:20,
-        boxShadow:"0 4px 16px rgba(0,0,0,0.25)"
+        boxShadow:"0 4px 16px rgba(0,0,0,0.25)",
+        overflow:"hidden",
+        maxHeight: isMobile ? 140 : 200,
       }}>
         <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
-          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?110:140} heightInch={hI} flangeInch={fI} webInch={webInch} flangeTInch={flangeTInch}/>
+          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?85:130} heightInch={svgH} flangeInch={svgF} webInch={svgW} flangeTInch={svgFT}/>
         </div>
       </div>
 
@@ -821,12 +841,12 @@ export default function App(): JSX.Element {
       {view === "catalog" && (
         <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           {/* Catalog header */}
-          <div style={{background:"#111827",padding:isMobile?"20px 16px":"24px 28px"}}>
+          <div style={{background:"#111827",padding:isMobile?"16px 16px 12px":"20px 28px 14px"}}>
             <div style={{maxWidth:640,margin:"0 auto"}}>
               <div style={{fontSize:isMobile?18:22,fontWeight:800,color:"#ffffff",marginBottom:4}}>Catálogo de Vigas</div>
-              <div style={{fontSize:13,color:"rgba(255,255,255,0.45)",marginBottom:16}}>{BEAMS.length} perfiles disponibles</div>
+              <div style={{fontSize:13,color:"rgba(255,255,255,0.45)",marginBottom:12}}>{BEAMS.length} perfiles disponibles</div>
               {/* Length toggle */}
-              <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <span style={{fontSize:12,color:"rgba(255,255,255,0.45)",fontWeight:600}}>Ver precios para:</span>
                 <div style={{display:"flex",background:"rgba(255,255,255,0.08)",borderRadius:8,padding:3,gap:2}}>
                   {LENGTH_OPTIONS.map(ft=>(
@@ -835,6 +855,25 @@ export default function App(): JSX.Element {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Sticky beam animation */}
+          <div style={{background:"linear-gradient(180deg,#1f2937 0%,#111827 100%)",padding:isMobile?"2px 12px 4px":"8px 32px 10px",textAlign:"center",position:"sticky",top:isMobile?56:64,zIndex:20,boxShadow:"0 4px 16px rgba(0,0,0,0.25)",overflow:"hidden",maxHeight:isMobile?140:200}}>
+            <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
+              <BeamSVG
+                hR={catHR} fR={catFR} wR={catWR} ftR={catFTR}
+                size={isMobile?85:130}
+                heightInch={catBeamObj?.height ?? null}
+                flangeInch={catBeamObj?.flange ?? null}
+                webInch={catBeamObj?.web ?? null}
+                flangeTInch={catBeamObj?.flangeT ?? null}
+              />
+            </div>
+            {!catBeamObj && (
+              <p style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginTop:2}}>
+                Toca una viga para ver sus dimensiones
+              </p>
+            )}
           </div>
 
           {/* Beam list */}
