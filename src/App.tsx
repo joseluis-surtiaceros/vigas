@@ -228,6 +228,39 @@ function fracLabel(inch: number): string {
   return bestD < 0.04 ? best.label : `${inch.toFixed(3)}"`;
 }
 
+// Full fraction set for catalog detail display
+const FULL_FRACS: {label:string; inch:number}[] = [
+  {label:'1/16"', inch:1/16}, {label:'1/8"', inch:1/8}, {label:'3/16"', inch:3/16},
+  {label:'1/4"', inch:1/4}, {label:'5/16"', inch:5/16}, {label:'3/8"', inch:3/8},
+  {label:'7/16"', inch:7/16}, {label:'1/2"', inch:1/2}, {label:'9/16"', inch:9/16},
+  {label:'5/8"', inch:5/8}, {label:'3/4"', inch:3/4}, {label:'7/8"', inch:7/8},
+];
+function nearestFrac(inch: number): string {
+  const whole = Math.floor(inch);
+  const remainder = inch - whole;
+  // Find nearest fraction for the remainder (0 = exact whole inch)
+  let bestLabel = "";
+  let bestD = Infinity;
+  for (const f of FULL_FRACS) {
+    const d = Math.abs(f.inch - remainder);
+    if (d < bestD) { bestD = d; bestLabel = f.label; }
+  }
+  // Also check if rounding to the next whole inch is closer
+  const dToNext = Math.abs(1 - remainder);
+  if (dToNext < bestD) {
+    // rounds up to whole
+    return `${whole + 1}"`;
+  }
+  if (remainder < 0.01) {
+    // essentially a whole number
+    return whole > 0 ? `${whole}"` : bestLabel;
+  }
+  if (whole === 0) return bestLabel;
+  // strip trailing " from fraction label to compose e.g. 1-1/4"
+  const frac = bestLabel.replace('"', '');
+  return `${whole}-${frac}"`;
+}
+
 // ── Matching ──────────────────────────────────────────────────────────────────
 function computeRanges(beams: Beam[]): Ranges {
   const hv = beams.map(b => b.height), fv = beams.filter(b=>b.flange).map(b=>b.flange as number);
@@ -255,31 +288,47 @@ function useIsMobile(): boolean {
 }
 
 // ── Beam SVG ──────────────────────────────────────────────────────────────────
-function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200 }: { hR?:number; fR?:number; wR?:number; ftR?:number; size?:number }): JSX.Element {
-  // Both height and flange use the SAME scale so aspect ratio is preserved.
-  // When h == b the beam looks visually square (tall as it is wide).
+function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200, heightInch=null, flangeInch=null, webInch=null, flangeTInch=null }: {
+  hR?:number; fR?:number; wR?:number; ftR?:number; size?:number;
+  heightInch?: number | null; flangeInch?: number | null;
+  webInch?: number | null; flangeTInch?: number | null;
+}): JSX.Element {
   const minDim = size * 0.20;
   const maxDim = size * 0.82;
-  const fw = minDim + fR * (maxDim - minDim);   // flange width
-  const bh = minDim + hR * (maxDim - minDim);   // beam height
-
-  // Thickness scales with the smaller of the two dims for realism
+  const fw = minDim + fR * (maxDim - minDim);
+  const bh = minDim + hR * (maxDim - minDim);
   const wt = Math.max(4, size * 0.018 + wR * size * 0.05);
   const ft = Math.max(5, size * 0.024 + ftR * size * 0.044);
 
-  // Canvas is always the same size — only the I-beam shape changes inside it
-  const W = size * 1.9;
-  const H = size * 1.55;
+  const pad = size * 0.55;
+  const W = size + pad * 2;
+  const H = size + pad * 2;
   const cx = W / 2;
-  const top = (H - bh) / 2;
-  const bot = top + bh;
+  const cy = H / 2;
+  const top = cy - bh / 2;
+  const bot = cy + bh / 2;
 
-  // Springy overshoot easing for dramatic feel
   const T = "all 0.65s cubic-bezier(0.34,1.45,0.64,1)";
-  const arrowLeft = cx - fw / 2 - 20;
+
+  // Main dimension labels
+  const peralteLabel  = heightInch  != null ? `h = ${heightInch.toFixed(3)}"` : "Peralte (h)";
+  const patinLabel    = flangeInch  != null ? `b = ${flangeInch.toFixed(3)}"` : "Patín (b)";
+  const twLabel       = webInch     != null ? `tw = ${webInch.toFixed(3)}"` : null;
+  const tfLabel       = flangeTInch != null ? `tf = ${flangeTInch.toFixed(3)}"` : null;
+
+  // Bracket positions
+  const bracketX = cx - fw / 2 - 16;  // left side for Peralte
+  const bracketY = top - 18;            // top side for Patín
+  const rightX   = cx + fw / 2 + 16;   // right side for tf label
+
+  // Pill widths
+  const peralteW  = heightInch  != null ? 78 : 62;
+  const patinW    = flangeInch  != null ? 78 : 56;
+  const twPillW   = webInch     != null ? 72 : 0;
+  const tfPillW   = flangeTInch != null ? 76 : 0;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{overflow:"visible", display:"block"}}>
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{overflow:"visible", display:"block", margin:"0 auto"}}>
       <defs>
         <linearGradient id="gs2" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#d1fae5"/>
@@ -292,30 +341,48 @@ function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200 }: { hR?:number; fR
           <stop offset="100%" stopColor="#166534"/>
         </linearGradient>
         <filter id="sh2" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#15803d" floodOpacity="0.38"/>
+          <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#15803d" floodOpacity="0.35"/>
         </filter>
       </defs>
 
-      {/* ── Top flange ── */}
-      <rect x={cx-fw/2} y={top} width={fw} height={ft} fill="url(#gs2)" rx="3" filter="url(#sh2)" style={{transition:T}}/>
-      {/* ── Web ── */}
-      <rect x={cx-wt/2} y={top+ft} width={wt} height={Math.max(2, bh-ft*2)} fill="url(#gw2)" style={{transition:T}}/>
-      {/* ── Bottom flange ── */}
-      <rect x={cx-fw/2} y={bot-ft} width={fw} height={ft} fill="url(#gs2)" rx="3" filter="url(#sh2)" style={{transition:T}}/>
+      {/* ── I-beam ── */}
+      <rect x={cx-fw/2} y={top}     width={fw} height={ft}                    fill="url(#gs2)" rx="3" filter="url(#sh2)" style={{transition:T}}/>
+      <rect x={cx-wt/2} y={top+ft}  width={wt} height={Math.max(2,bh-ft*2)}  fill="url(#gw2)"        style={{transition:T}}/>
+      <rect x={cx-fw/2} y={bot-ft}  width={fw} height={ft}                    fill="url(#gs2)" rx="3" filter="url(#sh2)" style={{transition:T}}/>
 
-      {/* ── PERALTE: left side vertical bracket ── */}
-      <line x1={arrowLeft} y1={top} x2={arrowLeft} y2={bot} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" strokeDasharray="4,3" style={{transition:T}}/>
-      <line x1={arrowLeft-7} y1={top} x2={arrowLeft+7} y2={top} stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" style={{transition:T}}/>
-      <line x1={arrowLeft-7} y1={bot} x2={arrowLeft+7} y2={bot} stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" style={{transition:T}}/>
-      <rect x={arrowLeft-42} y={(top+bot)/2-12} width={54} height={22} rx="6" fill="rgba(0,0,0,0.48)" style={{transition:T}}/>
-      <text x={arrowLeft-15} y={(top+bot)/2+5} textAnchor="middle" fontSize="12" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>Peralte</text>
+      {/* ── PERALTE: left vertical bracket ── */}
+      <line x1={bracketX} y1={top} x2={bracketX} y2={bot} stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" strokeDasharray="4,3" style={{transition:T}}/>
+      <line x1={bracketX-6} y1={top} x2={bracketX+6} y2={top} stroke="rgba(255,255,255,0.6)" strokeWidth="1.6" style={{transition:T}}/>
+      <line x1={bracketX-6} y1={bot} x2={bracketX+6} y2={bot} stroke="rgba(255,255,255,0.6)" strokeWidth="1.6" style={{transition:T}}/>
+      <rect x={bracketX - peralteW - 6} y={(top+bot)/2 - 11} width={peralteW} height={22} rx="6" fill="rgba(0,0,0,0.5)" style={{transition:T}}/>
+      <text x={bracketX - peralteW/2 - 6} y={(top+bot)/2 + 5} textAnchor="middle" fontSize="11" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>{peralteLabel}</text>
 
       {/* ── PATÍN: top horizontal bracket ── */}
-      <line x1={cx-fw/2} y1={top-16} x2={cx+fw/2} y2={top-16} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" strokeDasharray="4,3" style={{transition:T}}/>
-      <line x1={cx-fw/2} y1={top-22} x2={cx-fw/2} y2={top-9} stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" style={{transition:T}}/>
-      <line x1={cx+fw/2} y1={top-22} x2={cx+fw/2} y2={top-9} stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" style={{transition:T}}/>
-      <rect x={cx-28} y={top-40} width={56} height={22} rx="6" fill="rgba(0,0,0,0.48)" style={{transition:T}}/>
-      <text x={cx} y={top-25} textAnchor="middle" fontSize="12" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>Patín</text>
+      <line x1={cx-fw/2} y1={bracketY} x2={cx+fw/2} y2={bracketY} stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" strokeDasharray="4,3" style={{transition:T}}/>
+      <line x1={cx-fw/2} y1={bracketY-6} x2={cx-fw/2} y2={bracketY+6} stroke="rgba(255,255,255,0.6)" strokeWidth="1.6" style={{transition:T}}/>
+      <line x1={cx+fw/2} y1={bracketY-6} x2={cx+fw/2} y2={bracketY+6} stroke="rgba(255,255,255,0.6)" strokeWidth="1.6" style={{transition:T}}/>
+      <rect x={cx - patinW/2} y={bracketY - 22} width={patinW} height={22} rx="6" fill="rgba(0,0,0,0.5)" style={{transition:T}}/>
+      <text x={cx} y={bracketY - 7} textAnchor="middle" fontSize="11" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>{patinLabel}</text>
+
+      {/* ── TF (Espesor patín): right side, pointing at top flange ── */}
+      {tfLabel && (
+        <>
+          <line x1={rightX} y1={top} x2={rightX} y2={top+ft} stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" strokeDasharray="3,2" style={{transition:T}}/>
+          <line x1={rightX-5} y1={top}    x2={rightX+5} y2={top}    stroke="rgba(255,255,255,0.6)" strokeWidth="1.4" style={{transition:T}}/>
+          <line x1={rightX-5} y1={top+ft} x2={rightX+5} y2={top+ft} stroke="rgba(255,255,255,0.6)" strokeWidth="1.4" style={{transition:T}}/>
+          <rect x={rightX + 7} y={top + ft/2 - 11} width={tfPillW} height={22} rx="6" fill="rgba(0,0,0,0.5)" style={{transition:T}}/>
+          <text x={rightX + 7 + tfPillW/2} y={top + ft/2 + 5} textAnchor="middle" fontSize="11" fontWeight="700" fill="rgba(255,255,255,0.95)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>{tfLabel}</text>
+        </>
+      )}
+
+      {/* ── TW (Espesor alma): right side, pointing at web ── */}
+      {twLabel && (
+        <>
+          <line x1={cx+wt/2} y1={cy} x2={rightX} y2={cy} stroke="rgba(255,255,255,0.35)" strokeWidth="1" strokeDasharray="3,2" style={{transition:T}}/>
+          <rect x={rightX + 7} y={cy - 11} width={twPillW} height={22} rx="6" fill="rgba(0,0,0,0.45)" style={{transition:T}}/>
+          <text x={rightX + 7 + twPillW/2} y={cy + 5} textAnchor="middle" fontSize="11" fontWeight="700" fill="rgba(255,255,255,0.85)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>{twLabel}</text>
+        </>
+      )}
     </svg>
   );
 }
@@ -383,6 +450,7 @@ export default function App(): JSX.Element {
   const [selected, setSelected] = useState<Beam|null>(null);
 
   const [catLength, setCatLength] = useState<LengthFt>(20);
+  const [catSelected, setCatSelected] = useState<string|null>(null);
 
   const hI = height ? toInch(parseFloat(height),unit) : null;
   const fI = flange ? toInch(parseFloat(flange),unit) : null;
@@ -486,26 +554,33 @@ export default function App(): JSX.Element {
 
       {/* ── SEARCH VIEW ── */}
       {view === "search" && <>
-      {/* ── Beam panel — sticky on mobile so beam stays visible while scrolling ── */}
-      <div style={{
-        background:"linear-gradient(160deg,#111827 0%,#1f2937 65%,#166534 100%)",
-        padding:isMobile?"20px 12px 14px":"36px 32px 40px",
-        textAlign:"center", position:"relative", overflow:"hidden",
-        ...(isMobile ? {position:"sticky" as const, top:92, zIndex:20} : {})
-      }}>
+
+      {/* ── Title block — scrolls normally ── */}
+      <div style={{background:"linear-gradient(160deg,#111827 0%,#1f2937 65%,#166534 100%)",padding:isMobile?"22px 20px 16px":"32px 32px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,background:"rgba(22,163,74,0.07)",borderRadius:"50%",pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:-50,left:-30,width:180,height:180,background:"rgba(22,163,74,0.04)",borderRadius:"50%",pointerEvents:"none"}}/>
-        <div style={{position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:isMobile?6:14}}>
-          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?175:220}/>
-          {!isMobile && <div>
-            <h1 style={{fontSize:28,fontWeight:800,color:"#ffffff",letterSpacing:"-0.03em",lineHeight:1.2,marginBottom:6}}>
-              Encuentra tu viga de acero
-            </h1>
-            <p style={{fontSize:14,color:"rgba(255,255,255,0.5)",lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>
-              Ingresa dimensiones → perfil más cercano + precio inmediato
-            </p>
-          </div>}
-          {isMobile && <p style={{fontSize:11,color:"rgba(255,255,255,0.4)",margin:0}}>Ingresa dimensiones abajo</p>}
+        <div style={{position:"relative"}}>
+          <h1 style={{fontSize:isMobile?22:28,fontWeight:800,color:"#ffffff",letterSpacing:"-0.03em",lineHeight:1.2,marginBottom:6}}>
+            Encuentra tu viga de acero
+          </h1>
+          <p style={{fontSize:isMobile?12:14,color:"rgba(255,255,255,0.5)",lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>
+            Ingresa dimensiones → perfil más cercano + precio inmediato
+          </p>
+        </div>
+      </div>
+
+      {/* ── Beam SVG — sticky so it stays on screen while form scrolls ── */}
+      <div style={{
+        background:"linear-gradient(180deg,#1f2937 0%,#111827 100%)",
+        padding:isMobile?"10px 12px 14px":"16px 32px 20px",
+        textAlign:"center",
+        position:"sticky",
+        top: isMobile ? 56 : 64,
+        zIndex:20,
+        boxShadow:"0 4px 16px rgba(0,0,0,0.25)"
+      }}>
+        <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
+          <BeamSVG hR={hR} fR={fR} wR={wR} ftR={ftR} size={isMobile?110:140} heightInch={hI} flangeInch={fI} webInch={webInch} flangeTInch={flangeTInch}/>
         </div>
       </div>
 
@@ -593,7 +668,7 @@ export default function App(): JSX.Element {
               {results.map(({beam,dist},i)=>{
                 const isTop=i===0, isExp=selected?.id===beam.id;
                 const score=Math.max(0,100-dist*200);
-                const mLabel=score>90?"Exacto":score>70?"Muy cercano":score>50?"Cercano":"Aproximado";
+                const mLabel=score>90?"Casi Exacto":score>70?"Muy cercano":score>50?"Cercano":"Aproximado";
                 const mColor=score>90?"#16a34a":score>70?"#3b82f6":score>50?"#f59e0b":"#9ca3af";
                 const weightKg=beam.lbsPerFt*lengthFt*LBS_TO_KG;
                 const price=weightKg*PRICE_PER_KG;
@@ -618,6 +693,9 @@ export default function App(): JSX.Element {
                           <span style={{width:6,height:6,borderRadius:"50%",background:isTop?"rgba(255,255,255,0.5)":mColor,flexShrink:0,display:"inline-block"}}/>
                           <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",color:isTop?"rgba(255,255,255,0.55)":mColor}}>{mLabel}</span>
                         </div>
+                        <div style={{fontSize:9,color:isTop?"rgba(255,255,255,0.3)":"#9ca3af",marginTop:3,lineHeight:1.4}}>
+                          Sujeto a disponibilidad, favor de contactar para revisar tiempos de entrega
+                        </div>
                       </div>
                       <div style={{textAlign:"right",flexShrink:0}}>
                         <div style={{fontSize:15,fontWeight:800,color:isTop?"#4ade80":"#16a34a",fontFamily:"monospace"}}>{fmtPeso(price)}</div>
@@ -630,9 +708,9 @@ export default function App(): JSX.Element {
 
                     {isExp && (
                       <div style={{animation:"fadeUp 0.2s ease",background:"#ffffff",border:"1.5px solid #e5e7eb",borderTop:"none",borderRadius:"0 0 16px 16px",padding:"18px 16px 20px",boxShadow:"0 4px 12px rgba(0,0,0,0.06)"}}>
-                        {/* Price card — dark */}
-                        <div style={{background:"#111827",borderRadius:12,padding:"16px 18px",marginBottom:16}}>
-                          <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.45)",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>
+                        {/* Price card — light gray */}
+                        <div style={{background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:12,padding:"16px 18px",marginBottom:16}}>
+                          <div style={{fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>
                             Precio — {lengthFt} ft ({(lengthFt*FT_TO_M).toFixed(1)} m)
                           </div>
                           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
@@ -642,8 +720,8 @@ export default function App(): JSX.Element {
                               ["Total c/IVA",fmtPeso(beam.lbsPerFt*lengthFt*LBS_TO_KG*PRICE_PER_KG)],
                             ].map(([l,v],j)=>(
                               <div key={l as string}>
-                                <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4,fontWeight:600}}>{l}</div>
-                                <div style={{fontSize:j===2?18:14,fontWeight:j===2?800:600,color:j===2?"#4ade80":"#ffffff",fontFamily:"monospace",lineHeight:1}}>{v}</div>
+                                <div style={{fontSize:10,color:"#6b7280",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4,fontWeight:600}}>{l}</div>
+                                <div style={{fontSize:j===2?18:14,fontWeight:j===2?800:600,color:j===2?"#15803d":"#111827",fontFamily:"monospace",lineHeight:1}}>{v}</div>
                               </div>
                             ))}
                           </div>
@@ -651,18 +729,21 @@ export default function App(): JSX.Element {
 
                         {/* Specs */}
                         <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>Especificaciones</div>
-                        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
+                        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:16}}>
                           {[
-                            ["Altura h",`${dv(beam.height)}`],
-                            ["Patín b",beam.flange!=null?`${dv(beam.flange)}`:"N/D"],
-                            ["Alma tw",fracLabel(beam.web)],
-                            ["Esp. tf",fracLabel(beam.flangeT)],
-                            ["lb/ft",`${beam.lbsPerFt}`],
-                            ["kg/m",`${(beam.lbsPerFt*LBS_TO_KG).toFixed(2)}`],
-                          ].map(([l,v])=>(
-                            <div key={l as string} style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:10,padding:"9px 10px"}}>
-                              <div style={{fontSize:10,color:"#6b7280",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:3,fontWeight:600}}>{l}</div>
-                              <div style={{fontSize:12,color:"#111827",fontFamily:"monospace",fontWeight:600}}>{v}</div>
+                            {lbl:"Peralte (h)",   dec:`${beam.height.toFixed(3)}"`,        frac:nearestFrac(beam.height)},
+                            {lbl:"Patín (b)",      dec:beam.flange!=null?`${beam.flange.toFixed(3)}"`:"N/D", frac:beam.flange!=null?nearestFrac(beam.flange):""},
+                            {lbl:"Esp. Alma (tw)", dec:`${beam.web.toFixed(3)}"`,           frac:nearestFrac(beam.web)},
+                            {lbl:"Esp. Patín (tf)",dec:`${beam.flangeT.toFixed(3)}"`,      frac:nearestFrac(beam.flangeT)},
+                            {lbl:"Peso lineal",    dec:`${beam.lbsPerFt} lb/ft`,            frac:"", bottom:`${(beam.lbsPerFt*LBS_TO_KG).toFixed(2)} kg/m`},
+                          ].map(({lbl,dec,frac,bottom})=>(
+                            <div key={lbl} style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:10,padding:"9px 10px"}}>
+                              <div style={{fontSize:10,color:"#6b7280",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4,fontWeight:600}}>{lbl}</div>
+                              <div style={{display:"flex",alignItems:"baseline",gap:5,flexWrap:"wrap"}}>
+                                <span style={{fontSize:11,color:"#6b7280",fontFamily:"monospace",fontWeight:500}}>{dec}</span>
+                                {frac && <span style={{fontSize:13,fontWeight:800,color:"#111827",fontFamily:"monospace"}}>≈ {frac}</span>}
+                              </div>
+                              {bottom && <div style={{fontSize:11,color:"#6b7280",fontFamily:"monospace",marginTop:2}}>{bottom}</div>}
                             </div>
                           ))}
                         </div>
@@ -761,39 +842,131 @@ export default function App(): JSX.Element {
             {catBeams.map((beam,i)=>{
               const weightKg = beam.lbsPerFt * catLength * LBS_TO_KG;
               const price = weightKg * PRICE_PER_KG;
+              const isExp = catSelected === beam.id;
               return (
-                <div key={beam.id} className="rc" style={{animationDelay:`${Math.min(i,20)*0.02}s`,background:"#ffffff",border:"1px solid #e5e7eb",borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
-                  {/* Size badge */}
-                  <div style={{width:40,height:40,borderRadius:10,background:"#f3f4f6",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#374151",fontFamily:"monospace"}}>{beam.heightR}"</div>
-                  {/* Name & dims */}
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:14,fontWeight:700,color:"#111827",fontFamily:"'JetBrains Mono',monospace",letterSpacing:"-0.02em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                      Viga {beam.name}
-                    </div>
-                    <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>
-                      {beam.lbsPerFt} lb/ft · {(beam.lbsPerFt*LBS_TO_KG).toFixed(2)} kg/m
-                      {beam.flange ? ` · patín ${beam.flange}"` : ""}
-                    </div>
-                  </div>
-                  {/* Price */}
-                  <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{fontSize:14,fontWeight:800,color:"#16a34a",fontFamily:"monospace"}}>{fmtPeso(price)}</div>
-                    <div style={{fontSize:11,color:"#9ca3af",marginTop:1}}>{Math.round(weightKg)} kg · {catLength} ft</div>
-                  </div>
-                  {/* WhatsApp */}
-                  <a
-                    href={`https://wa.me/526616137040?text=${encodeURIComponent(
-                      `Hola Surtiaceros, me interesa cotizar:\n\n*Viga ${beam.name}*\n📏 ${catLength} ft (${(catLength*FT_TO_M).toFixed(1)} m)\n⚖️ ${Math.round(weightKg)} kg\n💰 ${fmtPeso(price)} c/IVA\n\n¿Pueden confirmar disponibilidad?`
-                    )}`}
-                    target="_blank" rel="noopener noreferrer"
-                    style={{flexShrink:0,width:36,height:36,borderRadius:10,background:"#25d366",display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none"}}
-                    title="Cotizar por WhatsApp"
+                <div key={beam.id} className="rc" style={{animationDelay:`${Math.min(i,20)*0.02}s`}}>
+                  {/* ── Row ── */}
+                  <div
+                    onClick={()=>setCatSelected(isExp ? null : beam.id)}
+                    className="tap"
+                    style={{background:"#ffffff",border:`1.5px solid ${isExp?"#16a34a":"#e5e7eb"}`,borderRadius:isExp?"14px 14px 0 0":14,padding:"13px 14px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",userSelect:"none",boxShadow:isExp?"0 2px 8px rgba(22,163,74,0.12)":"0 1px 3px rgba(0,0,0,0.04)"}}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.121 1.532 5.856L.057 23.882l6.198-1.627A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.52-5.184-1.426l-.371-.22-3.681.965.982-3.588-.242-.38A9.937 9.937 0 0 1 2 12C2 6.478 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                    {/* Size badge */}
+                    <div style={{width:38,height:38,borderRadius:10,background:isExp?"#f0fdf4":"#f3f4f6",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:isExp?"#15803d":"#374151",fontFamily:"monospace",border:isExp?"1.5px solid #bbf7d0":"none"}}>{beam.heightR}"</div>
+                    {/* Name & dims */}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:14,fontWeight:700,color:"#111827",fontFamily:"'JetBrains Mono',monospace",letterSpacing:"-0.02em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                        Viga {beam.name}
+                      </div>
+                      <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>
+                        {beam.lbsPerFt} lb/ft · {(beam.lbsPerFt*LBS_TO_KG).toFixed(2)} kg/m
+                        {beam.flange ? ` · patín ${beam.flange}"` : ""}
+                      </div>
+                      <div style={{fontSize:9,color:"#9ca3af",marginTop:3,lineHeight:1.4}}>
+                        Sujeto a disponibilidad, favor de contactar para revisar tiempos de entrega
+                      </div>
+                    </div>
+                    {/* Price */}
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontSize:14,fontWeight:800,color:"#16a34a",fontFamily:"monospace"}}>{fmtPeso(price)}</div>
+                      <div style={{fontSize:11,color:"#9ca3af",marginTop:1}}>{Math.round(weightKg)} kg · {catLength} ft</div>
+                    </div>
+                    {/* Chevron */}
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{flexShrink:0,transform:isExp?"rotate(90deg)":"none",transition:"transform 0.2s",opacity:0.35}}>
+                      <path d="M5 3l4 4-4 4" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                  </a>
+                  </div>
+
+                  {/* ── Expanded detail ── */}
+                  {isExp && (
+                    <div style={{animation:"fadeUp 0.2s ease",background:"#ffffff",border:"1.5px solid #16a34a",borderTop:"none",borderRadius:"0 0 14px 14px",padding:"16px 14px 18px",boxShadow:"0 4px 12px rgba(0,0,0,0.06)"}}>
+
+                      {/* Price card */}
+                      <div style={{background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10}}>
+                          Precio — {catLength} ft ({(catLength*FT_TO_M).toFixed(1)} m)
+                        </div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                          {[
+                            ["Peso total",`${Math.round(weightKg)} kg`],
+                            ["$/kg","$40 MXN"],
+                            ["Total c/IVA", fmtPeso(price)],
+                          ].map(([l,v],j)=>(
+                            <div key={l as string}>
+                              <div style={{fontSize:10,color:"#6b7280",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:3,fontWeight:600}}>{l}</div>
+                              <div style={{fontSize:j===2?17:13,fontWeight:j===2?800:600,color:j===2?"#15803d":"#111827",fontFamily:"monospace",lineHeight:1}}>{v}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Specs grid */}
+                      <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>Especificaciones</div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:14}}>
+                        {[
+                          ["Peralte (h)", beam.height, null],
+                          ["Patín (b)", beam.flange, null],
+                          ["Esp. Alma (tw)", beam.web, true],
+                          ["Esp. Patín (tf)", beam.flangeT, true],
+                          ["Peso lineal", null, null],
+                          ["lb/ft + kg/m", null, null],
+                        ].map(([lbl], idx) => {
+                          let decVal = "";
+                          let fracVal = "";
+                          let bottom = "";
+
+                          if (idx === 0) {
+                            decVal = `${beam.height.toFixed(3)}"`;
+                            fracVal = nearestFrac(beam.height);
+                          } else if (idx === 1) {
+                            decVal = beam.flange != null ? `${beam.flange.toFixed(3)}"` : "N/D";
+                            fracVal = beam.flange != null ? nearestFrac(beam.flange) : "";
+                          } else if (idx === 2) {
+                            decVal = `${beam.web.toFixed(3)}"`;
+                            fracVal = nearestFrac(beam.web);
+                          } else if (idx === 3) {
+                            decVal = `${beam.flangeT.toFixed(3)}"`;
+                            fracVal = nearestFrac(beam.flangeT);
+                          } else if (idx === 4) {
+                            decVal = `${beam.lbsPerFt} lb/ft`;
+                            fracVal = "";
+                            bottom = `${(beam.lbsPerFt*LBS_TO_KG).toFixed(2)} kg/m`;
+                          } else {
+                            return null;
+                          }
+
+                          return (
+                            <div key={lbl as string} style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:"#6b7280",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:5,fontWeight:600}}>{lbl as string}</div>
+                              <div style={{display:"flex",alignItems:"baseline",gap:5,flexWrap:"wrap"}}>
+                                <span style={{fontSize:12,color:"#374151",fontFamily:"monospace",fontWeight:500}}>{decVal}</span>
+                                {fracVal && <span style={{fontSize:13,fontWeight:800,color:"#111827",fontFamily:"monospace"}}>≈ {fracVal}</span>}
+                              </div>
+                              {bottom && <div style={{fontSize:11,color:"#6b7280",fontFamily:"monospace",marginTop:3}}>{bottom}</div>}
+                            </div>
+                          );
+                        }).filter(Boolean)}
+                      </div>
+
+                      {/* CTAs */}
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        <a
+                          href={`mailto:contacto@surtiaceros.com?subject=${encodeURIComponent(`Cotización Viga ${beam.name}`)}&body=${encodeURIComponent(`Hola,\n\nMe interesa cotizar la siguiente viga:\n\nViga: ${beam.name}\nLongitud: ${catLength} ft (${(catLength*FT_TO_M).toFixed(1)} m)\nPeso estimado: ${Math.round(weightKg)} kg\nPrecio estimado: ${fmtPeso(price)} (c/IVA)\n\nFavor de confirmar disponibilidad y precio final.\n\nGracias.`)}`}
+                          className="tap"
+                          style={{width:"100%",padding:"12px",background:"#111827",color:"#ffffff",borderRadius:12,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:7,textDecoration:"none",minHeight:44}}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                          Contactar por correo electrónico
+                        </a>
+                        <a
+                          href={`https://wa.me/526616137040?text=${encodeURIComponent(`Hola Surtiaceros, me interesa cotizar:\n\n*Viga ${beam.name}*\n📏 ${catLength} ft (${(catLength*FT_TO_M).toFixed(1)} m)\n⚖️ ${Math.round(weightKg)} kg\n💰 ${fmtPeso(price)} c/IVA\n\n¿Pueden confirmar disponibilidad?`)}`}
+                          target="_blank" rel="noopener noreferrer" className="tap"
+                          style={{width:"100%",padding:"12px",background:"#25d366",color:"#ffffff",borderRadius:12,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:7,textDecoration:"none",minHeight:44}}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.121 1.532 5.856L.057 23.882l6.198-1.627A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.52-5.184-1.426l-.371-.22-3.681.965.982-3.588-.242-.38A9.937 9.937 0 0 1 2 12C2 6.478 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                          Contactar por WhatsApp
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
