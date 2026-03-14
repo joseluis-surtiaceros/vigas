@@ -207,9 +207,17 @@ const FT_TO_M = 0.3048;
 const LENGTH_OPTIONS: LengthFt[] = [20, 40];
 
 const FRAC_OPTIONS: FractionOption[] = [
-  { label:'3/16"', inch:3/16 }, { label:'1/4"', inch:1/4 }, { label:'5/16"', inch:5/16 },
-  { label:'3/8"', inch:3/8 }, { label:'7/16"', inch:7/16 }, { label:'1/2"', inch:1/2 },
-  { label:'9/16"', inch:9/16 }, { label:'5/8"', inch:5/8 }, { label:'3/4"', inch:3/4 },
+  { label:'3/16"', inch:3/16 }, { label:'1/4"',   inch:1/4 },   { label:'5/16"', inch:5/16 },
+  { label:'3/8"',  inch:3/8 },  { label:'7/16"',  inch:7/16 },  { label:'1/2"',  inch:1/2 },
+  { label:'9/16"', inch:9/16 }, { label:'5/8"',   inch:5/8 },   { label:'3/4"',  inch:3/4 },
+  { label:'7/8"',  inch:7/8 },  { label:'1"',     inch:1 },
+  { label:'1-1/16"', inch:1+1/16 }, { label:'1-1/8"', inch:1+1/8 }, { label:'1-3/16"', inch:1+3/16 },
+  { label:'1-1/4"',  inch:1+1/4 },  { label:'1-5/16"', inch:1+5/16 }, { label:'1-3/8"', inch:1+3/8 },
+  { label:'1-7/16"', inch:1+7/16 }, { label:'1-1/2"', inch:1+1/2 }, { label:'1-9/16"', inch:1+9/16 },
+  { label:'1-5/8"',  inch:1+5/8 },  { label:'1-3/4"', inch:1+3/4 }, { label:'1-7/8"', inch:1+7/8 },
+  { label:'2"',      inch:2 },
+  { label:'2-1/16"', inch:2+1/16 }, { label:'2-1/8"', inch:2+1/8 },
+  { label:'2-1/4"',  inch:2+1/4 },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -279,6 +287,30 @@ function useIsMobile(): boolean {
   const [m, setM] = useState(typeof window!=="undefined"?window.innerWidth<640:false);
   useEffect(() => { const c=()=>setM(window.innerWidth<640); window.addEventListener("resize",c); return ()=>window.removeEventListener("resize",c); },[]);
   return m;
+}
+
+// ── Prevent pinch-zoom ────────────────────────────────────────────────────────
+function usePreventZoom(): void {
+  useEffect(() => {
+    // Update viewport meta to disable user scaling
+    let meta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'viewport';
+      document.head.appendChild(meta);
+    }
+    meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+
+    // Also block gesture/wheel zoom on iOS and desktop
+    const preventZoom = (e: TouchEvent) => { if (e.touches.length > 1) e.preventDefault(); };
+    const preventWheel = (e: WheelEvent) => { if (e.ctrlKey) e.preventDefault(); };
+    document.addEventListener('touchstart', preventZoom, { passive: false });
+    document.addEventListener('wheel', preventWheel, { passive: false });
+    return () => {
+      document.removeEventListener('touchstart', preventZoom);
+      document.removeEventListener('wheel', preventWheel);
+    };
+  }, []);
 }
 
 // ── Beam SVG ──────────────────────────────────────────────────────────────────
@@ -441,6 +473,7 @@ function FractionPicker({ label, selectedInch, onSelect, useMM=false }: { label:
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App(): JSX.Element {
   const isMobile = useIsMobile();
+  usePreventZoom();
   const [view, setView] = useState<"search"|"catalog">("search");
   const [unit, setUnit] = useState<"in"|"cm">("in");
   const [height, setHeight] = useState("");
