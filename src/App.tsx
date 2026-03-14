@@ -580,7 +580,7 @@ export default function App(): JSX.Element {
           <button type="button" onClick={doSearch} disabled={!canSearch} className="tap" style={searchBtn}>
             {loading
               ? <><svg width="18" height="18" viewBox="0 0 20 20" style={{animation:"spin 0.7s linear infinite"}}><circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" fill="none"/><path d="M10 2 A8 8 0 0 1 18 10" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/></svg>Buscando...</>
-              : <><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="2.2"/><path d="M13 13L17 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>Buscar Perfil</>
+              : <><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="2.2"/><path d="M13 13L17 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>Buscar Viga</>
             }
           </button>
         )}
@@ -588,7 +588,7 @@ export default function App(): JSX.Element {
         {/* Results */}
         {searched && !loading && results.length > 0 && (
           <div>
-            <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>Perfiles más cercanos</div>
+            <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>Vigas más cercanas a lo que usted busca:</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {results.map(({beam,dist},i)=>{
                 const isTop=i===0, isExp=selected?.id===beam.id;
@@ -668,9 +668,22 @@ export default function App(): JSX.Element {
                         </div>
 
                         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                          <button type="button" className="tap" style={{width:"100%",padding:"13px",background:"#111827",color:"#ffffff",border:"none",borderRadius:12,fontSize:14,fontWeight:700,cursor:"pointer",minHeight:46}}>
-                            Solicitar cotización
-                          </button>
+                          <a
+                            href={`mailto:contacto@surtiaceros.com?subject=${encodeURIComponent(`Cotización Viga ${beam.name}`)}&body=${encodeURIComponent(
+                              `Hola,\n\nMe interesa cotizar la siguiente viga:\n\n` +
+                              `Viga: ${beam.name}\n` +
+                              `Longitud: ${lengthFt} ft (${(lengthFt*FT_TO_M).toFixed(1)} m)\n` +
+                              `Peso estimado: ${Math.round(beam.lbsPerFt*lengthFt*LBS_TO_KG)} kg\n` +
+                              `Precio estimado: ${fmtPeso(beam.lbsPerFt*lengthFt*LBS_TO_KG*PRICE_PER_KG)} (c/IVA)\n\n` +
+                              `Por favor confirmar disponibilidad y precio final.\n\nGracias.`
+                            )}`}
+                            className="tap"
+                            style={{width:"100%",padding:"13px",background:"#111827",color:"#ffffff",borderRadius:12,fontSize:14,fontWeight:700,cursor:"pointer",minHeight:46,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none"}}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                            </svg>
+                            Contactar por correo electrónico
+                          </a>
                           <a
                             href={`https://wa.me/526616137040?text=${encodeURIComponent(
                               `Hola Surtiaceros, me interesa cotizar la siguiente viga:\n\n` +
@@ -716,7 +729,7 @@ export default function App(): JSX.Element {
           <button type="button" onClick={doSearch} disabled={!canSearch} className="tap" style={searchBtn}>
             {loading
               ? <><svg width="18" height="18" viewBox="0 0 20 20" style={{animation:"spin 0.7s linear infinite"}}><circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" fill="none"/><path d="M10 2 A8 8 0 0 1 18 10" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/></svg>Buscando...</>
-              : <><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="2.2"/><path d="M13 13L17 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>Buscar Perfil</>
+              : <><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="2.2"/><path d="M13 13L17 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>Buscar Viga</>
             }
           </button>
         </div>
