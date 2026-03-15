@@ -418,7 +418,7 @@ export default function App(): JSX.Element {
   const [catLength, setCatLength] = useState<LengthFt>(20);
   const [catSelected, setCatSelected] = useState<string|null>(null);
 
-  // ── Price, Cart, PIN ───────────────────────────────────────────────────────
+  // ── Price, Cart, Password ─────────────────────────────────────────────────
   const [pricePerKg, setPricePerKg] = useState<number>(()=>{
     const s = localStorage.getItem("sa_price"); return s ? parseFloat(s) : PRICE_PER_KG;
   });
@@ -427,13 +427,16 @@ export default function App(): JSX.Element {
   const [pinUnlocked, setPinUnlocked] = useState(false);
   const [priceInput, setPriceInput] = useState("");
   const [pinError, setPinError] = useState(false);
-  const PRICE_PIN = "1234"; // change this to your preferred PIN
+  // Change this password anytime — stored only in the code
+  const PRICE_PASSWORD = "surtiaceros2024";
 
   type CartItem = { beam: Beam; lengthFt: LengthFt; qty: number };
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientCompany, setClientCompany] = useState("");
   const [showQuoteForm, setShowQuoteForm] = useState(false);
 
   function addToCart(beam: Beam, lft: LengthFt, qty: number) {
@@ -453,7 +456,7 @@ export default function App(): JSX.Element {
   }
 
   function tryUnlockPin() {
-    if (pinInput === PRICE_PIN) {
+    if (pinInput === PRICE_PASSWORD) {
       setPinUnlocked(true); setPinError(false); setPriceInput(String(pricePerKg));
     } else {
       setPinError(true); setPinInput("");
@@ -470,86 +473,183 @@ export default function App(): JSX.Element {
   }
 
   function generatePDF() {
-    const folio = `SA-${Date.now().toString().slice(-6)}`;
-    const date = new Date().toLocaleDateString("es-MX", {year:"numeric",month:"long",day:"numeric"});
-    const rows = cart.map(({beam,lengthFt:lft,qty})=>{
+    const folio = `SA-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("es-MX", {year:"numeric",month:"long",day:"numeric"});
+    const validUntil = new Date(now.getTime() + 15*24*60*60*1000)
+      .toLocaleDateString("es-MX", {year:"numeric",month:"long",day:"numeric"});
+    const grandTotal = cart.reduce((s,{beam,lengthFt:lft,qty})=>s+beam.lbsPerFt*lft*LBS_TO_KG*qty*pricePerKg,0);
+    const totalKg = cart.reduce((s,{beam,lengthFt:lft,qty})=>s+beam.lbsPerFt*lft*LBS_TO_KG*qty,0);
+    const fmt = (n:number) => new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(n);
+
+    const rows = cart.map(({beam,lengthFt:lft,qty},idx)=>{
       const wkg = beam.lbsPerFt * lft * LBS_TO_KG;
       const total = wkg * qty * pricePerKg;
       return `<tr>
-        <td>${beam.name}</td>
-        <td style="text-align:center">${lft} ft</td>
+        <td style="text-align:center;color:#6b7280">${idx+1}</td>
+        <td><strong>${beam.name}</strong><br><span style="font-size:11px;color:#6b7280">${beam.height.toFixed(2)}" × ${beam.flange?.toFixed(2)??"—"}" | tw:${nearestFrac(beam.web)} tf:${nearestFrac(beam.flangeT)}</span></td>
+        <td style="text-align:center">${lft} ft<br><span style="font-size:11px;color:#6b7280">${(lft*0.3048).toFixed(1)} m</span></td>
         <td style="text-align:center">${qty}</td>
         <td style="text-align:center">${Math.round(wkg)} kg</td>
-        <td style="text-align:center">${Math.round(wkg*qty)} kg</td>
+        <td style="text-align:center;font-weight:600">${Math.round(wkg*qty)} kg</td>
         <td style="text-align:right">$${pricePerKg.toFixed(2)}</td>
-        <td style="text-align:right;font-weight:700">${new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(total)}</td>
+        <td style="text-align:right;font-weight:700;color:#15803d">${fmt(total)}</td>
       </tr>`;
     }).join("");
-    const grandTotal = cart.reduce((s,{beam,lengthFt:lft,qty})=>s+beam.lbsPerFt*lft*LBS_TO_KG*qty*pricePerKg,0);
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-    <title>Cotización ${folio}</title>
+
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+    <title>Cotización ${folio} — Surtiaceros del Pacífico</title>
     <style>
-      body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#111;font-size:13px}
-      .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #16a34a}
-      .logo-area h1{font-size:22px;font-weight:800;color:#111827;margin:0 0 4px}
-      .logo-area p{margin:2px 0;color:#555;font-size:12px}
-      .folio-area{text-align:right}
-      .folio-area .folio{font-size:20px;font-weight:800;color:#16a34a}
-      .folio-area p{margin:2px 0;color:#555;font-size:12px}
-      .client-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:24px}
-      .client-box h3{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280}
-      table{width:100%;border-collapse:collapse;margin-bottom:24px}
-      th{background:#111827;color:#fff;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;text-align:left}
-      td{padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px}
-      tr:nth-child(even) td{background:#f9fafb}
-      .total-row td{font-weight:800;font-size:15px;background:#f0fdf4;border-top:2px solid #16a34a;color:#15803d}
-      .footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;line-height:1.7}
-      .terms{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#7c2d12}
-      @media print{body{padding:16px}}
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:Arial,sans-serif;padding:28px 36px;color:#111;font-size:13px;line-height:1.5}
+      /* ── Top bar ── */
+      .topbar{background:#111827;color:#fff;padding:8px 0;text-align:center;font-size:11px;letter-spacing:.08em;margin:-28px -36px 24px;padding:8px 36px}
+      /* ── Header ── */
+      .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:3px solid #16a34a}
+      .company h1{font-size:20px;font-weight:800;color:#111827;margin:0 0 6px}
+      .company p{margin:2px 0;color:#555;font-size:11.5px}
+      .company .rfc{font-size:11px;color:#888;margin-top:4px}
+      .quote-info{text-align:right;min-width:180px}
+      .quote-info .label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;font-weight:700}
+      .quote-info .folio-num{font-size:22px;font-weight:800;color:#16a34a;line-height:1.1}
+      .quote-info .date{font-size:12px;color:#555;margin-top:4px}
+      /* ── Two-col info ── */
+      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+      .info-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px}
+      .info-box h3{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;font-weight:700;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:6px}
+      .info-box p{font-size:12.5px;margin:3px 0;color:#374151}
+      .info-box strong{color:#111827}
+      /* ── Table ── */
+      table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:12.5px}
+      thead th{background:#111827;color:#fff;padding:9px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+      tbody td{padding:9px 10px;border-bottom:1px solid #f0f0f0}
+      tbody tr:nth-child(even) td{background:#f9fafb}
+      .subtotal-row td{background:#f0fdf4;font-weight:700;font-size:13px;border-top:2px solid #16a34a;color:#15803d;padding:11px 10px}
+      /* ── Summary box ── */
+      .summary{display:flex;justify-content:flex-end;margin-bottom:22px}
+      .summary-table{border:2px solid #111827;border-radius:10px;overflow:hidden;min-width:280px}
+      .summary-table div{display:flex;justify-content:space-between;padding:9px 16px;font-size:13px}
+      .summary-table div:not(:last-child){border-bottom:1px solid #e5e7eb}
+      .summary-table .total-line{background:#111827;color:#fff;font-weight:800;font-size:16px}
+      .summary-table .total-line span:last-child{color:#4ade80}
+      /* ── Terms ── */
+      .terms{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;margin-bottom:22px;font-size:11.5px;color:#7c2d12;line-height:1.7}
+      .terms strong{display:block;margin-bottom:4px;font-size:12px}
+      /* ── Signature area ── */
+      .signatures{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:24px;margin-top:8px}
+      .sig-block{text-align:center}
+      .sig-line{border-top:1.5px solid #111827;padding-top:8px;margin-top:40px;font-size:11px;color:#374151}
+      .sig-line strong{display:block;font-size:12px;color:#111827}
+      .sig-line span{color:#6b7280}
+      /* ── Footer ── */
+      .footer{border-top:1px solid #e5e7eb;padding-top:12px;font-size:10.5px;color:#9ca3af;line-height:1.7;text-align:center}
+      .footer .green{color:#16a34a;font-weight:700}
+      @media print{
+        body{padding:16px 20px}
+        .topbar{margin:-16px -20px 18px;padding:6px 20px}
+        @page{margin:1.5cm}
+      }
     </style></head><body>
+
+    <div class="topbar">SURTIACEROS DEL PACÍFICO S.A. DE C.V. &nbsp;·&nbsp; DOCUMENTO OFICIAL DE COTIZACIÓN</div>
+
     <div class="header">
-      <div class="logo-area">
+      <div class="company">
         <h1>Surtiaceros del Pacífico</h1>
+        <p><strong>S.A. de C.V.</strong></p>
         <p>Calle Aguascalientes No. 4255, Col. Constitución</p>
-        <p>Playas de Rosarito, B.C., C.P. 22707, México</p>
-        <p>Tel. 661 613 7038 / 661 613 7040</p>
-        <p>contacto@surtiaceros.com · surtiaceros.com</p>
+        <p>Playas de Rosarito, Baja California, C.P. 22707, México</p>
+        <p>Tel. <strong>661 613 7038</strong> / <strong>661 613 7040</strong></p>
+        <p>✉ contacto@surtiaceros.com &nbsp;·&nbsp; 🌐 surtiaceros.com</p>
+        <p class="rfc">Distribución de acero estructural y perfiles metálicos</p>
       </div>
-      <div class="folio-area">
-        <div class="folio">COTIZACIÓN</div>
-        <p><strong>${folio}</strong></p>
-        <p>${date}</p>
+      <div class="quote-info">
+        <div class="label">Cotización</div>
+        <div class="folio-num">${folio}</div>
+        <div class="date">📅 Fecha de emisión:<br><strong>${dateStr}</strong></div>
+        <div class="date" style="margin-top:6px;color:#dc2626">⏳ Válida hasta:<br><strong>${validUntil}</strong></div>
       </div>
     </div>
-    <div class="client-box">
-      <h3>Datos del cliente</h3>
-      <p><strong>Nombre:</strong> ${clientName || "—"}</p>
-      <p><strong>Teléfono / Contacto:</strong> ${clientPhone || "—"}</p>
+
+    <div class="info-grid">
+      <div class="info-box">
+        <h3>Datos del cliente</h3>
+        <p><strong>Nombre:</strong> ${clientName || "—"}</p>
+        <p><strong>Empresa:</strong> ${clientCompany || "—"}</p>
+        <p><strong>Teléfono:</strong> ${clientPhone || "—"}</p>
+        <p><strong>Correo:</strong> ${clientEmail || "—"}</p>
+      </div>
+      <div class="info-box">
+        <h3>Resumen del pedido</h3>
+        <p><strong>Total de líneas:</strong> ${cart.length} viga(s) diferente(s)</p>
+        <p><strong>Peso total estimado:</strong> ${Math.round(totalKg)} kg</p>
+        <p><strong>Precio unitario:</strong> $${pricePerKg.toFixed(2)} MXN/kg (c/IVA)</p>
+        <p><strong>Moneda:</strong> Pesos Mexicanos (MXN)</p>
+      </div>
     </div>
+
     <table>
       <thead><tr>
-        <th>Viga</th><th style="text-align:center">Longitud</th><th style="text-align:center">Piezas</th>
-        <th style="text-align:center">Kg/pieza</th><th style="text-align:center">Kg total</th>
-        <th style="text-align:right">$/kg</th><th style="text-align:right">Subtotal c/IVA</th>
+        <th style="width:30px">#</th>
+        <th>Perfil / Viga</th>
+        <th style="text-align:center">Longitud</th>
+        <th style="text-align:center">Piezas</th>
+        <th style="text-align:center">Kg/pieza</th>
+        <th style="text-align:center">Kg total</th>
+        <th style="text-align:right">$/kg</th>
+        <th style="text-align:right">Subtotal c/IVA</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr class="total-row">
-        <td colspan="6">TOTAL ESTIMADO c/IVA</td>
-        <td style="text-align:right">${new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(grandTotal)}</td>
+      <tfoot><tr class="subtotal-row">
+        <td colspan="5" style="text-align:right">TOTAL GENERAL ESTIMADO c/IVA</td>
+        <td style="text-align:center">${Math.round(totalKg)} kg</td>
+        <td></td>
+        <td style="text-align:right;font-size:16px">${fmt(grandTotal)}</td>
       </tr></tfoot>
     </table>
-    <div class="terms">
-      ⚠️ <strong>Términos:</strong> Precios de referencia sujetos a cambio sin previo aviso. Sujeto a disponibilidad de inventario.
-      El envío puede tardar de 7 a 10 días hábiles. Favor de confirmar disponibilidad con un agente antes de realizar su pedido.
-      Cotización válida por 7 días a partir de la fecha de emisión.
+
+    <div class="summary">
+      <div class="summary-table">
+        <div><span>Subtotal (sin IVA estimado)</span><span>${fmt(grandTotal/1.16)}</span></div>
+        <div><span>IVA (16%)</span><span>${fmt(grandTotal - grandTotal/1.16)}</span></div>
+        <div class="total-line"><span>TOTAL c/IVA</span><span>${fmt(grandTotal)}</span></div>
+      </div>
     </div>
+
+    <div class="terms">
+      <strong>⚠️ Términos y Condiciones</strong>
+      • Los precios indicados son de referencia y están sujetos a cambio sin previo aviso según el mercado del acero.<br>
+      • La presente cotización tiene una vigencia de <strong>15 días naturales</strong> a partir de la fecha de emisión (hasta el ${validUntil}).<br>
+      • Todos los precios incluyen IVA (16%). No incluye flete ni maniobras de descarga salvo indicación expresa.<br>
+      • Entrega estimada: <strong>7 a 10 días hábiles</strong> sujeto a disponibilidad de inventario.<br>
+      • Para confirmar el pedido se requiere orden de compra o anticipo del 50%. Sujeto a disponibilidad al momento de confirmar.
+    </div>
+
+    <div class="signatures">
+      <div class="sig-block">
+        <div class="sig-line">
+          <strong>Elaboró / Agente de Ventas</strong>
+          <span>Surtiaceros del Pacífico S.A. de C.V.</span>
+        </div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line">
+          <strong>Aceptación del Cliente</strong>
+          <span>${clientName || "Nombre y firma del cliente"}</span>
+        </div>
+      </div>
+    </div>
+
     <div class="footer">
-      Surtiaceros del Pacífico S.A. de C.V. · Todos los derechos reservados © ${new Date().getFullYear()}<br>
-      Este documento fue generado automáticamente y es de carácter informativo.
+      <span class="green">Surtiaceros del Pacífico S.A. de C.V.</span> &nbsp;·&nbsp;
+      Calle Aguascalientes No. 4255, Col. Constitución, Playas de Rosarito, B.C., C.P. 22707 &nbsp;·&nbsp;
+      Tel. 661 613 7038 / 661 613 7040 &nbsp;·&nbsp; contacto@surtiaceros.com<br>
+      Cotización generada digitalmente el ${dateStr} · Folio: ${folio} · Todos los derechos reservados © ${now.getFullYear()}
     </div>
     </body></html>`;
+
     const w = window.open("","_blank");
-    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(()=>w.print(), 400); }
+    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(()=>w.print(), 500); }
   }
 
   const catBeamObj = BEAMS.find(b => b.id === catSelected) ?? null;
@@ -667,12 +767,11 @@ export default function App(): JSX.Element {
             </div>
             {!pinUnlocked ? (
               <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                <span style={{fontSize:13,color:"#78350f"}}>PIN de acceso:</span>
-                <input type="password" maxLength={4} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&tryUnlockPin()} placeholder="••••"
-                  style={{width:80,padding:"8px 12px",borderRadius:10,border:`2px solid ${pinError?"#ef4444":"#fde68a"}`,fontSize:18,fontFamily:"monospace",textAlign:"center",outline:"none",background:"#ffffff"}} autoFocus/>
+                <span style={{fontSize:13,color:"#78350f"}}>Contraseña:</span>
+                <input type="password" value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&tryUnlockPin()} placeholder="Ingresa la contraseña"
+                  style={{width:200,padding:"8px 12px",borderRadius:10,border:`2px solid ${pinError?"#ef4444":"#fde68a"}`,fontSize:16,outline:"none",background:"#ffffff"}} autoFocus/>
                 <button type="button" onClick={tryUnlockPin} className="tap" style={{padding:"8px 18px",borderRadius:10,background:"#f59e0b",color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer"}}>Acceder</button>
-                {pinError && <span style={{fontSize:12,color:"#ef4444",fontWeight:600}}>PIN incorrecto</span>}
-                <span style={{fontSize:11,color:"#a16207"}}>PIN predeterminado: 1234</span>
+                {pinError && <span style={{fontSize:12,color:"#ef4444",fontWeight:600}}>Contraseña incorrecta</span>}
               </div>
             ) : (
               <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
@@ -705,7 +804,12 @@ export default function App(): JSX.Element {
               {/* Client fields */}
               {showQuoteForm ? (
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-                  {[{label:"Nombre del cliente",val:clientName,set:setClientName,ph:"Ej. Juan García"},{label:"Teléfono / Empresa",val:clientPhone,set:setClientPhone,ph:"Ej. 661 123 4567"}].map(({label,val,set,ph})=>(
+                  {[
+                    {label:"Nombre del cliente",val:clientName,set:setClientName,ph:"Ej. Juan García"},
+                    {label:"Empresa",val:clientCompany,set:setClientCompany,ph:"Ej. Constructora XYZ"},
+                    {label:"Teléfono",val:clientPhone,set:setClientPhone,ph:"Ej. 661 123 4567"},
+                    {label:"Correo electrónico",val:clientEmail,set:setClientEmail,ph:"Ej. juan@empresa.com"},
+                  ].map(({label,val,set,ph})=>(
                     <div key={label}>
                       <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.05em"}}>{label}</div>
                       <input type="text" value={val} onChange={e=>set(e.target.value)} placeholder={ph}
@@ -1181,6 +1285,32 @@ export default function App(): JSX.Element {
         </div>
       )}
 
+      {/* ── Shipping info banner ── */}
+      <div style={{background:"#f0fdf4",borderTop:"1px solid #bbf7d0",borderBottom:"1px solid #bbf7d0",padding:"16px 20px",marginBottom:0}}>
+        <div style={{maxWidth:640,margin:"0 auto",display:"flex",flexDirection:isMobile?"column":"row",gap:12,alignItems:isMobile?"flex-start":"center"}}>
+          <div style={{fontSize:22,flexShrink:0}}>🚚</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#15803d",marginBottom:4}}>Política de envío</div>
+            <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:isMobile?6:20}}>
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <span style={{background:"#16a34a",color:"#fff",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,whiteSpace:"nowrap"}}>GRATIS</span>
+                <span style={{fontSize:13,color:"#166534",fontWeight:600}}>Playas de Rosarito y Tijuana, B.C.</span>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <span style={{background:"#f59e0b",color:"#fff",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,whiteSpace:"nowrap"}}>CON COSTO</span>
+                <span style={{fontSize:13,color:"#374151"}}>Fuera de Rosarito y Tijuana — contactar para cotizar flete</span>
+              </div>
+            </div>
+          </div>
+          <a href={`https://wa.me/526616137040?text=${encodeURIComponent("Hola, me gustaría saber el costo de envío a mi ubicación.")}`}
+            target="_blank" rel="noopener noreferrer"
+            style={{flexShrink:0,padding:"8px 14px",borderRadius:10,background:"#25d366",color:"#fff",fontSize:12,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.121 1.532 5.856L.057 23.882l6.198-1.627A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.52-5.184-1.426l-.371-.22-3.681.965.982-3.588-.242-.38A9.937 9.937 0 0 1 2 12C2 6.478 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+            Cotizar flete
+          </a>
+        </div>
+      </div>
+
       <footer style={{background:"#111827",borderTop:"1px solid #1f2937",padding:"28px 20px 32px",textAlign:"center",marginBottom:isMobile?"80px":0}}>
         <div style={{marginBottom:20}}>
           <a href="https://surtiaceros.com" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",flexDirection:"column",alignItems:"center",gap:8,textDecoration:"none"}}>
@@ -1200,6 +1330,7 @@ export default function App(): JSX.Element {
         <div style={{height:1,background:"rgba(255,255,255,0.08)",maxWidth:420,margin:"0 auto 18px"}}/>
         <div style={{maxWidth:420,margin:"0 auto",display:"flex",flexDirection:"column",gap:4}}>
           <p style={{fontSize:11,color:"rgba(255,255,255,0.38)",lineHeight:1.7}}>
+            Envío gratis en Playas de Rosarito y Tijuana, B.C. Fuera de estas ciudades sujeto a cotización de flete.<br/>
             Los precios mostrados son de referencia. El envío puede tardar de 7 a 10 días hábiles.<br/>
             Favor de contactar a un agente para confirmar disponibilidad.
           </p>
@@ -1207,7 +1338,7 @@ export default function App(): JSX.Element {
             Aplicación desarrollada por Surtiaceros del Pacífico S.A. de C.V.<br/>
             Todos los derechos reservados © {new Date().getFullYear()}
           </p>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.18)",marginTop:4}}>v2.4</p>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.18)",marginTop:4}}>v2.5</p>
         </div>
       </footer>
     </div>
