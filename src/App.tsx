@@ -5,7 +5,6 @@ type Beam = {
   id: string; name: string; lbsPerFt: number;
   height: number; heightR: number; flange: number | null; flangeT: number; web: number;
 };
-type FractionOption = { label: string; inch: number };
 type SearchInput = { height: number; flange: number; web: number | null; flangeT: number | null };
 type ClosestResult = { beam: Beam; dist: number };
 type Ranges = { height:{min:number;max:number}; flange:{min:number;max:number}; web:{min:number;max:number}; flangeT:{min:number;max:number} };
@@ -206,20 +205,6 @@ const LBS_TO_KG = 0.453592;
 const FT_TO_M = 0.3048;
 const LENGTH_OPTIONS: LengthFt[] = [20, 40];
 
-const FRAC_OPTIONS: FractionOption[] = [
-  { label:'3/16"', inch:3/16 }, { label:'1/4"',   inch:1/4 },   { label:'5/16"', inch:5/16 },
-  { label:'3/8"',  inch:3/8 },  { label:'7/16"',  inch:7/16 },  { label:'1/2"',  inch:1/2 },
-  { label:'9/16"', inch:9/16 }, { label:'5/8"',   inch:5/8 },   { label:'3/4"',  inch:3/4 },
-  { label:'7/8"',  inch:7/8 },  { label:'1"',     inch:1 },
-  { label:'1-1/16"', inch:1+1/16 }, { label:'1-1/8"', inch:1+1/8 }, { label:'1-3/16"', inch:1+3/16 },
-  { label:'1-1/4"',  inch:1+1/4 },  { label:'1-5/16"', inch:1+5/16 }, { label:'1-3/8"', inch:1+3/8 },
-  { label:'1-7/16"', inch:1+7/16 }, { label:'1-1/2"', inch:1+1/2 }, { label:'1-9/16"', inch:1+9/16 },
-  { label:'1-5/8"',  inch:1+5/8 },  { label:'1-3/4"', inch:1+3/4 }, { label:'1-7/8"', inch:1+7/8 },
-  { label:'2"',      inch:2 },
-  { label:'2-1/16"', inch:2+1/16 }, { label:'2-1/8"', inch:2+1/8 },
-  { label:'2-1/4"',  inch:2+1/4 },
-];
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtPeso(n: number): string {
   return new Intl.NumberFormat("es-MX", { style:"currency", currency:"MXN", maximumFractionDigits:0 }).format(n);
@@ -358,46 +343,6 @@ function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200, heightInch=null, f
         <text x={rightX+7+twPillW/2} y={cy+5} textAnchor="middle" fontSize="11" fontWeight="700" fill="rgba(255,255,255,0.85)" fontFamily="'Plus Jakarta Sans',sans-serif" style={{transition:T}}>{twLabel}</text>
       </>)}
     </svg>
-  );
-}
-
-// ── Thickness input (mm, integers only) ──────────────────────────────────────
-function ThicknessMM({ label, selectedInch, onSelect }: { label:string; selectedInch:number|null; onSelect:(v:number|null)=>void }): JSX.Element {
-  const mmVal = selectedInch !== null ? Math.round(selectedInch * 25.4).toString() : "";
-  return (
-    <div>
-      <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>
-        {label} <span style={{fontWeight:400,color:"#9ca3af",textTransform:"none",letterSpacing:0,fontSize:11}}>(opcional)</span>
-      </div>
-      <div style={{position:"relative"}}>
-        <input type="number" inputMode="numeric" placeholder="ej. 8" value={mmVal} step="1" min="1"
-          onChange={e => { const v = parseInt(e.target.value, 10); onSelect(isNaN(v)||e.target.value===""?null:v/25.4); }}
-          style={{width:"100%",padding:"13px 46px 13px 16px",border:`2px solid ${selectedInch!==null?"#16a34a":"#e2e8f0"}`,borderRadius:14,fontSize:16,fontWeight:500,color:"#0f172a",fontFamily:"monospace",outline:"none",background:"#ffffff",WebkitAppearance:"none",MozAppearance:"textfield" as CSSProperties["MozAppearance"],transition:"border-color 0.2s"}}
-        />
-        <span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:13,fontWeight:700,color:selectedInch!==null?"#16a34a":"#94a3b8",pointerEvents:"none"}}>mm</span>
-      </div>
-      {selectedInch!==null&&<div style={{fontSize:11,color:"#16a34a",marginTop:5,fontFamily:"monospace"}}>{Math.round(selectedInch*25.4)} mm ≈ {nearestFrac(selectedInch)}</div>}
-    </div>
-  );
-}
-
-// ── Fraction Picker ───────────────────────────────────────────────────────────
-function FractionPicker({ label, selectedInch, onSelect, useMM=false }: { label:string; selectedInch:number|null; onSelect:(v:number|null)=>void; useMM?:boolean }): JSX.Element {
-  if (useMM) return <ThicknessMM label={label} selectedInch={selectedInch} onSelect={onSelect}/>;
-  return (
-    <div>
-      <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>
-        {label} <span style={{fontWeight:400,color:"#9ca3af",textTransform:"none",letterSpacing:0,fontSize:11}}>(opcional)</span>
-      </div>
-      <div style={{display:"flex",gap:7,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
-        <button type="button" onClick={()=>onSelect(null)} style={{flexShrink:0,minWidth:40,minHeight:38,borderRadius:10,border:`1.5px solid ${selectedInch===null?"#16a34a":"#e5e7eb"}`,background:selectedInch===null?"#16a34a":"#ffffff",color:selectedInch===null?"#ffffff":"#9ca3af",fontSize:15,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>—</button>
-        {FRAC_OPTIONS.map(({label:fl,inch})=>{
-          const active=selectedInch!==null&&Math.abs(selectedInch-inch)<0.001;
-          return <button key={fl} type="button" onClick={()=>onSelect(inch)} style={{flexShrink:0,minWidth:50,minHeight:38,padding:"0 10px",borderRadius:10,border:`1.5px solid ${active?"#16a34a":"#e5e7eb"}`,background:active?"#16a34a":"#ffffff",color:active?"#ffffff":"#374151",fontSize:13,fontWeight:active?700:400,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>{fl}</button>;
-        })}
-      </div>
-      {selectedInch!==null&&<div style={{fontSize:11,color:"#16a34a",marginTop:5,fontFamily:"monospace"}}>{selectedInch.toFixed(3)}"</div>}
-    </div>
   );
 }
 
