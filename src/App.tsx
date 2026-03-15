@@ -221,12 +221,6 @@ const FRAC_OPTIONS: FractionOption[] = [
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function toInch(val: number, unit: "in"|"cm"): number {
-  return unit === "in" ? val : (val * 10) / 25.4;
-}
-function fromInch(val: number, unit: "in"|"cm"): string {
-  return unit === "in" ? val.toFixed(3) : ((val * 25.4) / 10).toFixed(2);
-}
 function fmtPeso(n: number): string {
   return new Intl.NumberFormat("es-MX", { style:"currency", currency:"MXN", maximumFractionDigits:0 }).format(n);
 }
@@ -412,7 +406,6 @@ export default function App(): JSX.Element {
   const isMobile = useIsMobile();
   usePreventZoom();
   const [view, setView] = useState<"search"|"catalog">("search");
-  const [unit] = useState<"in"|"cm">("in");
   const [height, setHeight] = useState("");
   const [flange, setFlange] = useState("");
   const [webInch, setWebInch] = useState<number|null>(null);
@@ -431,8 +424,8 @@ export default function App(): JSX.Element {
   const catWR  = catBeamObj ? Math.max(0,Math.min(1,(catBeamObj.web-0.17)/1.3))       : 0.4;
   const catFTR = catBeamObj ? Math.max(0,Math.min(1,(catBeamObj.flangeT-0.17)/2.1))   : 0.4;
 
-  const hI = height ? toInch(parseFloat(height),unit) : null;
-  const fI = flange ? toInch(parseFloat(flange),unit) : null;
+  const hI = height ? parseFloat(height) : null;
+  const fI = flange ? parseFloat(flange) : null;
   const dispBeam = selected ?? null;
   const hR  = dispBeam ? Math.max(0,Math.min(1,(dispBeam.height-4)/40))            : (hI ? Math.max(0,Math.min(1,(hI-4)/40)) : 0.3);
   const fR  = dispBeam ? Math.max(0,Math.min(1,((dispBeam.flange??8)-3.5)/13))     : (fI ? Math.max(0,Math.min(1,(fI-3.5)/13)) : 0.4);
@@ -613,13 +606,76 @@ export default function App(): JSX.Element {
         </div>
 
         {/* Thicknesses */}
-        <div style={{...card,display:"flex",flexDirection:"column",gap:18}}>
+        <div style={{...card,display:"flex",flexDirection:"column",gap:16}}>
           <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase"}}>
-            Espesores {unit==="cm"?"(mm)":"(pulgadas)"}
+            Espesores (pulgadas) <span style={{fontWeight:400,color:"#9ca3af",textTransform:"none",fontSize:11}}>(opcional)</span>
           </div>
-          <FractionPicker label="Alma (tw)" selectedInch={webInch} onSelect={setWebInch} useMM={unit==="cm"}/>
+
+          {/* Alma (tw) */}
+          {(()=>{
+            const relevant = BEAMS.filter(b =>
+              (!height || b.heightR === parseInt(height)) &&
+              (!flange || Math.abs((b.flange??0) - parseFloat(flange)) < 0.4)
+            );
+            const options = Array.from(new Set(
+              relevant.map(b => Math.round(b.web * 16) / 16)
+            )).sort((a,b)=>a-b);
+            return (
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8}}>
+                  Alma (tw)
+                  {webInch && <span style={{marginLeft:8,fontSize:12,color:"#16a34a",fontWeight:800,fontFamily:"monospace",textTransform:"none",letterSpacing:0}}>≈ {nearestFrac(webInch)}</span>}
+                </div>
+                <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
+                  <button type="button" onClick={()=>setWebInch(null)} className="tap" style={{flexShrink:0,minWidth:40,minHeight:42,borderRadius:12,border:`2px solid ${webInch===null?"#16a34a":"#e5e7eb"}`,background:webInch===null?"#16a34a":"#ffffff",color:webInch===null?"#ffffff":"#9ca3af",fontSize:15,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>—</button>
+                  {options.map(v=>{
+                    const frac = nearestFrac(v);
+                    const active = webInch !== null && Math.abs(webInch - v) < 0.03;
+                    return (
+                      <button key={v} type="button" onClick={()=>setWebInch(v)} className="tap" style={{flexShrink:0,minWidth:54,minHeight:42,padding:"0 10px",borderRadius:12,border:`2px solid ${active?"#16a34a":"#e5e7eb"}`,background:active?"#16a34a":"#ffffff",color:active?"#ffffff":"#374151",fontSize:13,fontWeight:active?800:500,cursor:"pointer",transition:"all 0.15s",fontFamily:"monospace",whiteSpace:"nowrap",boxShadow:active?"0 2px 8px rgba(22,163,74,0.3)":"none"}}>
+                        {frac}
+                      </button>
+                    );
+                  })}
+                </div>
+                {height && flange && <div style={{fontSize:10,color:"#9ca3af",marginTop:4}}>Espesores de alma disponibles para esta combinación</div>}
+              </div>
+            );
+          })()}
+
           <div style={{height:1,background:"#f3f4f6"}}/>
-          <FractionPicker label="Patín (tf)" selectedInch={flangeTInch} onSelect={setFlangeTInch} useMM={unit==="cm"}/>
+
+          {/* Patín (tf) */}
+          {(()=>{
+            const relevant = BEAMS.filter(b =>
+              (!height || b.heightR === parseInt(height)) &&
+              (!flange || Math.abs((b.flange??0) - parseFloat(flange)) < 0.4)
+            );
+            const options = Array.from(new Set(
+              relevant.map(b => Math.round(b.flangeT * 16) / 16)
+            )).sort((a,b)=>a-b);
+            return (
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8}}>
+                  Patín (tf)
+                  {flangeTInch && <span style={{marginLeft:8,fontSize:12,color:"#16a34a",fontWeight:800,fontFamily:"monospace",textTransform:"none",letterSpacing:0}}>≈ {nearestFrac(flangeTInch)}</span>}
+                </div>
+                <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
+                  <button type="button" onClick={()=>setFlangeTInch(null)} className="tap" style={{flexShrink:0,minWidth:40,minHeight:42,borderRadius:12,border:`2px solid ${flangeTInch===null?"#16a34a":"#e5e7eb"}`,background:flangeTInch===null?"#16a34a":"#ffffff",color:flangeTInch===null?"#ffffff":"#9ca3af",fontSize:15,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>—</button>
+                  {options.map(v=>{
+                    const frac = nearestFrac(v);
+                    const active = flangeTInch !== null && Math.abs(flangeTInch - v) < 0.03;
+                    return (
+                      <button key={v} type="button" onClick={()=>setFlangeTInch(v)} className="tap" style={{flexShrink:0,minWidth:54,minHeight:42,padding:"0 10px",borderRadius:12,border:`2px solid ${active?"#16a34a":"#e5e7eb"}`,background:active?"#16a34a":"#ffffff",color:active?"#ffffff":"#374151",fontSize:13,fontWeight:active?800:500,cursor:"pointer",transition:"all 0.15s",fontFamily:"monospace",whiteSpace:"nowrap",boxShadow:active?"0 2px 8px rgba(22,163,74,0.3)":"none"}}>
+                        {frac}
+                      </button>
+                    );
+                  })}
+                </div>
+                {height && flange && <div style={{fontSize:10,color:"#9ca3af",marginTop:4}}>Espesores de patín disponibles para esta combinación</div>}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Length */}
