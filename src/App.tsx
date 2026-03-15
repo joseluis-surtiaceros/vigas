@@ -1286,28 +1286,17 @@ export default function App(): JSX.Element {
       )}
 
       {/* ── Shipping info banner ── */}
-      <div style={{background:"#f0fdf4",borderTop:"1px solid #bbf7d0",borderBottom:"1px solid #bbf7d0",padding:"16px 20px",marginBottom:0}}>
-        <div style={{maxWidth:640,margin:"0 auto",display:"flex",flexDirection:isMobile?"column":"row",gap:12,alignItems:isMobile?"flex-start":"center"}}>
+      <div style={{background:"#f0fdf4",borderTop:"1px solid #bbf7d0",borderBottom:"1px solid #bbf7d0",padding:"14px 20px",marginBottom:0}}>
+        <div style={{maxWidth:640,margin:"0 auto",display:"flex",flexDirection:isMobile?"column":"row",gap:isMobile?6:20,alignItems:isMobile?"flex-start":"center"}}>
           <div style={{fontSize:22,flexShrink:0}}>🚚</div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:13,fontWeight:800,color:"#15803d",marginBottom:4}}>Política de envío</div>
-            <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:isMobile?6:20}}>
-              <div style={{display:"flex",alignItems:"center",gap:7}}>
-                <span style={{background:"#16a34a",color:"#fff",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,whiteSpace:"nowrap"}}>GRATIS</span>
-                <span style={{fontSize:13,color:"#166534",fontWeight:600}}>Playas de Rosarito y Tijuana, B.C.</span>
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:7}}>
-                <span style={{background:"#f59e0b",color:"#fff",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,whiteSpace:"nowrap"}}>CON COSTO</span>
-                <span style={{fontSize:13,color:"#374151"}}>Fuera de Rosarito y Tijuana — contactar para cotizar flete</span>
-              </div>
-            </div>
+          <div style={{display:"flex",alignItems:"center",gap:7}}>
+            <span style={{background:"#16a34a",color:"#fff",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,whiteSpace:"nowrap"}}>SIN COSTO</span>
+            <span style={{fontSize:13,color:"#166534",fontWeight:600}}>Entregas dentro de Playas de Rosarito y Tijuana, B.C.</span>
           </div>
-          <a href={`https://wa.me/526616137040?text=${encodeURIComponent("Hola, me gustaría saber el costo de envío a mi ubicación.")}`}
-            target="_blank" rel="noopener noreferrer"
-            style={{flexShrink:0,padding:"8px 14px",borderRadius:10,background:"#25d366",color:"#fff",fontSize:12,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.121 1.532 5.856L.057 23.882l6.198-1.627A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.52-5.184-1.426l-.371-.22-3.681.965.982-3.588-.242-.38A9.937 9.937 0 0 1 2 12C2 6.478 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-            Cotizar flete
-          </a>
+          <div style={{display:"flex",alignItems:"center",gap:7}}>
+            <span style={{background:"#f59e0b",color:"#fff",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:20,whiteSpace:"nowrap"}}>COSTO ADICIONAL</span>
+            <span style={{fontSize:13,color:"#374151"}}>Entregas foráneas, tarifa según destino y volumen</span>
+          </div>
         </div>
       </div>
 
@@ -1330,7 +1319,7 @@ export default function App(): JSX.Element {
         <div style={{height:1,background:"rgba(255,255,255,0.08)",maxWidth:420,margin:"0 auto 18px"}}/>
         <div style={{maxWidth:420,margin:"0 auto",display:"flex",flexDirection:"column",gap:4}}>
           <p style={{fontSize:11,color:"rgba(255,255,255,0.38)",lineHeight:1.7}}>
-            Envío gratis en Playas de Rosarito y Tijuana, B.C. Fuera de estas ciudades sujeto a cotización de flete.<br/>
+            El costo de flete está incluido en pedidos con entrega dentro de los municipios de Playas de Rosarito y Tijuana, B.C. Para entregas foráneas, el flete se cotiza por separado según destino y volumen.<br/>
             Los precios mostrados son de referencia. El envío puede tardar de 7 a 10 días hábiles.<br/>
             Favor de contactar a un agente para confirmar disponibilidad.
           </p>
