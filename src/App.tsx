@@ -412,7 +412,7 @@ export default function App(): JSX.Element {
   const isMobile = useIsMobile();
   usePreventZoom();
   const [view, setView] = useState<"search"|"catalog">("search");
-  const [unit, setUnit] = useState<"in"|"cm">("in");
+  const [unit] = useState<"in"|"cm">("in");
   const [height, setHeight] = useState("");
   const [flange, setFlange] = useState("");
   const [webInch, setWebInch] = useState<number|null>(null);
@@ -460,26 +460,7 @@ export default function App(): JSX.Element {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[height, flange, webInch, flangeTInch]);
 
-  function toggleUnit(u:"in"|"cm") {
-    if(u===unit) return;
-    const conv=(v:string)=>{ const n=parseFloat(v); return isNaN(n)?"":fromInch(toInch(n,unit),u); };
-    if(height) setHeight(conv(height));
-    if(flange) setFlange(conv(flange));
-    setUnit(u);
-  }
-
   const catBeams = BEAMS;
-
-  const inputCss: CSSProperties = {
-    width:"100%", padding:"11px 44px 11px 14px",
-    border:"1.5px solid #e5e7eb", borderRadius:12,
-    fontSize:16, fontWeight:500, color:"#111827",
-    fontFamily:"'JetBrains Mono','Fira Mono',monospace",
-    outline:"none", background:"#ffffff",
-    WebkitAppearance:"none",
-    MozAppearance:"textfield" as CSSProperties["MozAppearance"],
-    transition:"border-color 0.2s, box-shadow 0.2s",
-  };
 
   const card: CSSProperties = {
     background:"#ffffff", borderRadius:16, border:"1px solid #e5e7eb",
