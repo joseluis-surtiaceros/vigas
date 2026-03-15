@@ -418,6 +418,140 @@ export default function App(): JSX.Element {
   const [catLength, setCatLength] = useState<LengthFt>(20);
   const [catSelected, setCatSelected] = useState<string|null>(null);
 
+  // ── Price, Cart, PIN ───────────────────────────────────────────────────────
+  const [pricePerKg, setPricePerKg] = useState<number>(()=>{
+    const s = localStorage.getItem("sa_price"); return s ? parseFloat(s) : PRICE_PER_KG;
+  });
+  const [showPricePanel, setShowPricePanel] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinUnlocked, setPinUnlocked] = useState(false);
+  const [priceInput, setPriceInput] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const PRICE_PIN = "1234"; // change this to your preferred PIN
+
+  type CartItem = { beam: Beam; lengthFt: LengthFt; qty: number };
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [showCart, setShowCart] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
+
+  function addToCart(beam: Beam, lft: LengthFt, qty: number) {
+    setCart(prev => {
+      const existing = prev.findIndex(c => c.beam.id === beam.id && c.lengthFt === lft);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { ...updated[existing], qty: updated[existing].qty + qty };
+        return updated;
+      }
+      return [...prev, { beam, lengthFt: lft, qty }];
+    });
+  }
+
+  function removeFromCart(idx: number) {
+    setCart(prev => prev.filter((_,i)=>i!==idx));
+  }
+
+  function tryUnlockPin() {
+    if (pinInput === PRICE_PIN) {
+      setPinUnlocked(true); setPinError(false); setPriceInput(String(pricePerKg));
+    } else {
+      setPinError(true); setPinInput("");
+    }
+  }
+
+  function savePricePerKg() {
+    const n = parseFloat(priceInput);
+    if (!isNaN(n) && n > 0) {
+      setPricePerKg(n);
+      localStorage.setItem("sa_price", String(n));
+    }
+    setShowPricePanel(false); setPinUnlocked(false); setPinInput("");
+  }
+
+  function generatePDF() {
+    const folio = `SA-${Date.now().toString().slice(-6)}`;
+    const date = new Date().toLocaleDateString("es-MX", {year:"numeric",month:"long",day:"numeric"});
+    const rows = cart.map(({beam,lengthFt:lft,qty})=>{
+      const wkg = beam.lbsPerFt * lft * LBS_TO_KG;
+      const total = wkg * qty * pricePerKg;
+      return `<tr>
+        <td>${beam.name}</td>
+        <td style="text-align:center">${lft} ft</td>
+        <td style="text-align:center">${qty}</td>
+        <td style="text-align:center">${Math.round(wkg)} kg</td>
+        <td style="text-align:center">${Math.round(wkg*qty)} kg</td>
+        <td style="text-align:right">$${pricePerKg.toFixed(2)}</td>
+        <td style="text-align:right;font-weight:700">${new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(total)}</td>
+      </tr>`;
+    }).join("");
+    const grandTotal = cart.reduce((s,{beam,lengthFt:lft,qty})=>s+beam.lbsPerFt*lft*LBS_TO_KG*qty*pricePerKg,0);
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Cotización ${folio}</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#111;font-size:13px}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #16a34a}
+      .logo-area h1{font-size:22px;font-weight:800;color:#111827;margin:0 0 4px}
+      .logo-area p{margin:2px 0;color:#555;font-size:12px}
+      .folio-area{text-align:right}
+      .folio-area .folio{font-size:20px;font-weight:800;color:#16a34a}
+      .folio-area p{margin:2px 0;color:#555;font-size:12px}
+      .client-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:24px}
+      .client-box h3{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280}
+      table{width:100%;border-collapse:collapse;margin-bottom:24px}
+      th{background:#111827;color:#fff;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;text-align:left}
+      td{padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px}
+      tr:nth-child(even) td{background:#f9fafb}
+      .total-row td{font-weight:800;font-size:15px;background:#f0fdf4;border-top:2px solid #16a34a;color:#15803d}
+      .footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;line-height:1.7}
+      .terms{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#7c2d12}
+      @media print{body{padding:16px}}
+    </style></head><body>
+    <div class="header">
+      <div class="logo-area">
+        <h1>Surtiaceros del Pacífico</h1>
+        <p>Calle Aguascalientes No. 4255, Col. Constitución</p>
+        <p>Playas de Rosarito, B.C., C.P. 22707, México</p>
+        <p>Tel. 661 613 7038 / 661 613 7040</p>
+        <p>contacto@surtiaceros.com · surtiaceros.com</p>
+      </div>
+      <div class="folio-area">
+        <div class="folio">COTIZACIÓN</div>
+        <p><strong>${folio}</strong></p>
+        <p>${date}</p>
+      </div>
+    </div>
+    <div class="client-box">
+      <h3>Datos del cliente</h3>
+      <p><strong>Nombre:</strong> ${clientName || "—"}</p>
+      <p><strong>Teléfono / Contacto:</strong> ${clientPhone || "—"}</p>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Viga</th><th style="text-align:center">Longitud</th><th style="text-align:center">Piezas</th>
+        <th style="text-align:center">Kg/pieza</th><th style="text-align:center">Kg total</th>
+        <th style="text-align:right">$/kg</th><th style="text-align:right">Subtotal c/IVA</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="total-row">
+        <td colspan="6">TOTAL ESTIMADO c/IVA</td>
+        <td style="text-align:right">${new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(grandTotal)}</td>
+      </tr></tfoot>
+    </table>
+    <div class="terms">
+      ⚠️ <strong>Términos:</strong> Precios de referencia sujetos a cambio sin previo aviso. Sujeto a disponibilidad de inventario.
+      El envío puede tardar de 7 a 10 días hábiles. Favor de confirmar disponibilidad con un agente antes de realizar su pedido.
+      Cotización válida por 7 días a partir de la fecha de emisión.
+    </div>
+    <div class="footer">
+      Surtiaceros del Pacífico S.A. de C.V. · Todos los derechos reservados © ${new Date().getFullYear()}<br>
+      Este documento fue generado automáticamente y es de carácter informativo.
+    </div>
+    </body></html>`;
+    const w = window.open("","_blank");
+    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(()=>w.print(), 400); }
+  }
+
   const catBeamObj = BEAMS.find(b => b.id === catSelected) ?? null;
   const catHR  = catBeamObj ? Math.max(0,Math.min(1,(catBeamObj.height-4)/40))        : 0.3;
   const catFR  = catBeamObj ? Math.max(0,Math.min(1,((catBeamObj.flange??8)-3.5)/13)) : 0.4;
@@ -501,15 +635,121 @@ export default function App(): JSX.Element {
           <img src="/logo.jpg" alt="Surtiaceros" style={{height:isMobile?34:42,width:"auto",objectFit:"contain",flexShrink:0}}/>
           {!isMobile && <span style={{fontSize:11,color:"#16a34a",fontWeight:600,letterSpacing:"0.02em",borderBottom:"1px solid #bbf7d0"}}>surtiaceros.com</span>}
         </a>
-        <div style={{display:"flex",background:"#f3f4f6",borderRadius:10,padding:3,gap:2}}>
-          {([
-            {id:"search" as const, label:isMobile?"Buscar":"Identificador"},
-            {id:"catalog" as const, label:isMobile?"Catálogo":"Catálogo de Vigas"},
-          ]).map(({id,label})=>(
-            <button key={id} type="button" onClick={()=>setView(id)} className="tap" style={{padding:isMobile?"7px 10px":"8px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:isMobile?11:12,fontWeight:700,transition:"all 0.15s",background:view===id?"#111827":"transparent",color:view===id?"#ffffff":"#6b7280",minHeight:32,whiteSpace:"nowrap"}}>{label}</button>
-          ))}
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          {/* Cart button */}
+          <button type="button" onClick={()=>setShowCart(!showCart)} className="tap" style={{position:"relative",height:36,padding:"0 12px",borderRadius:10,border:"1.5px solid #e5e7eb",background:showCart?"#16a34a":"#ffffff",color:showCart?"#ffffff":"#374151",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+            Cotización
+            {cart.length > 0 && <span style={{background:"#ef4444",color:"#fff",borderRadius:999,fontSize:10,fontWeight:800,padding:"1px 6px",marginLeft:2}}>{cart.length}</span>}
+          </button>
+          {/* Price editor button */}
+          <button type="button" onClick={()=>setShowPricePanel(!showPricePanel)} className="tap" title="Editar precio/kg" style={{width:36,height:36,borderRadius:10,border:"1.5px solid #e5e7eb",background:showPricePanel?"#f59e0b":"#ffffff",color:showPricePanel?"#ffffff":"#6b7280",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </button>
+          {/* Nav tabs */}
+          <div style={{display:"flex",background:"#f3f4f6",borderRadius:10,padding:3,gap:2}}>
+            {([
+              {id:"search" as const, label:isMobile?"Buscar":"Identificador"},
+              {id:"catalog" as const, label:isMobile?"Catálogo":"Catálogo de Vigas"},
+            ]).map(({id,label})=>(
+              <button key={id} type="button" onClick={()=>setView(id)} className="tap" style={{padding:isMobile?"7px 10px":"8px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:isMobile?11:12,fontWeight:700,transition:"all 0.15s",background:view===id?"#111827":"transparent",color:view===id?"#ffffff":"#6b7280",minHeight:32,whiteSpace:"nowrap"}}>{label}</button>
+            ))}
+          </div>
         </div>
       </header>
+
+      {/* ── Price editor panel ── */}
+      {showPricePanel && (
+        <div className="rc" style={{background:"#fffbeb",borderBottom:"1px solid #fde68a",padding:"16px 20px"}}>
+          <div style={{maxWidth:580,margin:"0 auto"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#92400e",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:12}}>
+              💰 Editar precio por kg c/IVA
+            </div>
+            {!pinUnlocked ? (
+              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <span style={{fontSize:13,color:"#78350f"}}>PIN de acceso:</span>
+                <input type="password" maxLength={4} value={pinInput} onChange={e=>setPinInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&tryUnlockPin()} placeholder="••••"
+                  style={{width:80,padding:"8px 12px",borderRadius:10,border:`2px solid ${pinError?"#ef4444":"#fde68a"}`,fontSize:18,fontFamily:"monospace",textAlign:"center",outline:"none",background:"#ffffff"}} autoFocus/>
+                <button type="button" onClick={tryUnlockPin} className="tap" style={{padding:"8px 18px",borderRadius:10,background:"#f59e0b",color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer"}}>Acceder</button>
+                {pinError && <span style={{fontSize:12,color:"#ef4444",fontWeight:600}}>PIN incorrecto</span>}
+                <span style={{fontSize:11,color:"#a16207"}}>PIN predeterminado: 1234</span>
+              </div>
+            ) : (
+              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <span style={{fontSize:13,color:"#78350f"}}>Precio actual: <strong>${pricePerKg} MXN/kg</strong></span>
+                <span style={{fontSize:13,color:"#78350f"}}>Nuevo precio:</span>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:13,color:"#78350f",fontWeight:700}}>$</span>
+                  <input type="number" value={priceInput} onChange={e=>setPriceInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&savePricePerKg()}
+                    style={{width:90,padding:"8px 12px",borderRadius:10,border:"2px solid #f59e0b",fontSize:16,fontFamily:"monospace",outline:"none",background:"#ffffff"}} autoFocus/>
+                  <span style={{fontSize:13,color:"#78350f",fontWeight:700}}>MXN/kg</span>
+                </div>
+                <button type="button" onClick={savePricePerKg} className="tap" style={{padding:"8px 18px",borderRadius:10,background:"#16a34a",color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer"}}>Guardar</button>
+                <button type="button" onClick={()=>{setShowPricePanel(false);setPinUnlocked(false);setPinInput("");}} style={{padding:"8px 12px",borderRadius:10,background:"transparent",color:"#78350f",border:"none",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Cart / Quote panel ── */}
+      {showCart && (
+        <div className="rc" style={{background:"#ffffff",borderBottom:"1px solid #e5e7eb",padding:"16px 20px",maxHeight:500,overflowY:"auto"}}>
+          <div style={{maxWidth:640,margin:"0 auto"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:12}}>
+              📋 Cotización — {cart.length} viga(s)
+            </div>
+            {cart.length === 0 ? (
+              <div style={{fontSize:13,color:"#9ca3af",textAlign:"center",padding:"20px 0"}}>Sin vigas agregadas aún. Busca una viga y toca "Agregar a cotización PDF".</div>
+            ) : (<>
+              {/* Client fields */}
+              {showQuoteForm ? (
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                  {[{label:"Nombre del cliente",val:clientName,set:setClientName,ph:"Ej. Juan García"},{label:"Teléfono / Empresa",val:clientPhone,set:setClientPhone,ph:"Ej. 661 123 4567"}].map(({label,val,set,ph})=>(
+                    <div key={label}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#374151",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.05em"}}>{label}</div>
+                      <input type="text" value={val} onChange={e=>set(e.target.value)} placeholder={ph}
+                        style={{width:"100%",padding:"9px 12px",borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,outline:"none",background:"#ffffff"}}/>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <button type="button" onClick={()=>setShowQuoteForm(true)} style={{fontSize:12,color:"#3b82f6",background:"none",border:"none",cursor:"pointer",marginBottom:12,fontWeight:600}}>+ Agregar datos del cliente (opcional)</button>
+              )}
+              {/* Cart items */}
+              {cart.map(({beam,lengthFt:lft,qty},idx)=>{
+                const wkg = beam.lbsPerFt*lft*LBS_TO_KG;
+                const total = wkg*qty*pricePerKg;
+                return (
+                  <div key={idx} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f3f4f6"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:14,fontWeight:700,color:"#111827",fontFamily:"monospace"}}>Viga {beam.name}</div>
+                      <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{qty}× · {lft} ft · {Math.round(wkg*qty)} kg</div>
+                    </div>
+                    <div style={{fontSize:14,fontWeight:800,color:"#16a34a",fontFamily:"monospace"}}>{fmtPeso(total)}</div>
+                    <button type="button" onClick={()=>removeFromCart(idx)} style={{width:28,height:28,borderRadius:8,border:"1px solid #fee2e2",background:"#fff5f5",color:"#ef4444",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
+                  </div>
+                );
+              })}
+              {/* Total */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0",borderTop:"2px solid #111827",marginTop:4}}>
+                <span style={{fontSize:13,fontWeight:700,color:"#374151"}}>TOTAL ESTIMADO c/IVA</span>
+                <span style={{fontSize:20,fontWeight:800,color:"#15803d",fontFamily:"monospace"}}>{fmtPeso(cart.reduce((s,{beam,lengthFt:lft,qty})=>s+beam.lbsPerFt*lft*LBS_TO_KG*qty*pricePerKg,0))}</span>
+              </div>
+              {/* Actions */}
+              <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
+                <button type="button" onClick={generatePDF} className="tap" style={{flex:1,minWidth:160,padding:"13px",background:"#111827",color:"#ffffff",border:"none",borderRadius:12,fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  Generar cotización PDF
+                </button>
+                <button type="button" onClick={()=>{setCart([]);setClientName("");setClientPhone("");setShowQuoteForm(false);}} style={{padding:"13px 16px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:12,fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                  Limpiar
+                </button>
+              </div>
+            </>)}
+          </div>
+        </div>
+      )}
 
       {/* ── SEARCH VIEW ── */}
       {view === "search" && <>
@@ -716,7 +956,7 @@ export default function App(): JSX.Element {
                 const mLabel=score>90?"Casi Exacto":score>70?"Muy cercano":score>50?"Cercano":"Aproximado";
                 const mColor=score>90?"#16a34a":score>70?"#3b82f6":score>50?"#f59e0b":"#9ca3af";
                 const weightKg=beam.lbsPerFt*lengthFt*LBS_TO_KG;
-                const price=weightKg*PRICE_PER_KG;
+                const price=weightKg*pricePerKg;
                 return (
                   <div key={beam.id} className="rc" style={{animationDelay:`${i*0.07}s`}}>
                     <div onClick={()=>setSelected(isExp?null:beam)} className="tap" style={{background:isTop?"#111827":"#ffffff",border:`1.5px solid ${isTop?"#111827":isExp?"#16a34a":"#e5e7eb"}`,borderRadius:isExp?"16px 16px 0 0":16,padding:"16px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,userSelect:"none",boxShadow:isTop?"0 4px 16px rgba(0,0,0,0.2)":"0 1px 3px rgba(0,0,0,0.04)"}}>
@@ -737,17 +977,29 @@ export default function App(): JSX.Element {
                         <path d="M7 5l4 4-4 4" stroke={isTop?"#ffffff":"#374151"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </div>
-                    {isExp && (
+                    {isExp && (()=>{
+                      const [qty, setQty] = useState(1);
+                      return (
                       <div style={{animation:"fadeUp 0.2s ease",background:"#ffffff",border:"1.5px solid #e5e7eb",borderTop:"none",borderRadius:"0 0 16px 16px",padding:"18px 16px 20px",boxShadow:"0 4px 12px rgba(0,0,0,0.06)"}}>
                         <div style={{background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:12,padding:"16px 18px",marginBottom:16}}>
                           <div style={{fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12}}>Precio — {lengthFt} ft ({(lengthFt*FT_TO_M).toFixed(1)} m)</div>
-                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-                            {[["Peso total",`${Math.round(weightKg)} kg`],["$/kg","$40 MXN"],["Total c/IVA",fmtPeso(price)]].map(([l,v],j)=>(
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:12}}>
+                            {[["Peso/pieza",`${Math.round(weightKg)} kg`],[`$/kg`,"$"+pricePerKg+" MXN"],["Total c/IVA",fmtPeso(price*qty)]].map(([l,v],j)=>(
                               <div key={l as string}>
                                 <div style={{fontSize:10,color:"#6b7280",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4,fontWeight:600}}>{l}</div>
                                 <div style={{fontSize:j===2?18:14,fontWeight:j===2?800:600,color:j===2?"#15803d":"#111827",fontFamily:"monospace",lineHeight:1}}>{v}</div>
                               </div>
                             ))}
+                          </div>
+                          {/* Qty selector */}
+                          <div style={{display:"flex",alignItems:"center",gap:10,paddingTop:10,borderTop:"1px solid #e5e7eb"}}>
+                            <span style={{fontSize:12,fontWeight:600,color:"#374151",flexShrink:0}}>Cantidad:</span>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <button type="button" onClick={()=>setQty(q=>Math.max(1,q-1))} className="tap" style={{width:32,height:32,borderRadius:8,border:"1.5px solid #e5e7eb",background:"#fff",color:"#374151",fontSize:16,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                              <span style={{fontSize:16,fontWeight:800,color:"#111827",fontFamily:"monospace",minWidth:28,textAlign:"center"}}>{qty}</span>
+                              <button type="button" onClick={()=>setQty(q=>q+1)} className="tap" style={{width:32,height:32,borderRadius:8,border:"1.5px solid #e5e7eb",background:"#fff",color:"#374151",fontSize:16,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                            </div>
+                            <span style={{fontSize:12,color:"#9ca3af"}}>piezas · {Math.round(weightKg*qty)} kg total</span>
                           </div>
                         </div>
                         <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:10}}>Especificaciones</div>
@@ -770,19 +1022,26 @@ export default function App(): JSX.Element {
                           ))}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                          <a href={`mailto:contacto@surtiaceros.com?subject=${encodeURIComponent(`Cotización Viga ${beam.name}`)}&body=${encodeURIComponent(`Hola,\n\nMe interesa cotizar:\n\nViga: ${beam.name}\nLongitud: ${lengthFt} ft (${(lengthFt*FT_TO_M).toFixed(1)} m)\nPeso estimado: ${Math.round(weightKg)} kg\nPrecio estimado: ${fmtPeso(price)} (c/IVA)\n\nFavor de confirmar disponibilidad y precio final.\n\nGracias.`)}`}
+                          {/* Add to quote */}
+                          <button type="button" onClick={()=>{ addToCart(beam,lengthFt,qty); setShowCart(true); }} className="tap"
+                            style={{width:"100%",padding:"13px",background:"#16a34a",color:"#ffffff",border:"none",borderRadius:12,fontSize:14,fontWeight:700,minHeight:46,display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer"}}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                            Agregar a cotización PDF
+                          </button>
+                          <a href={`mailto:contacto@surtiaceros.com?subject=${encodeURIComponent(`Cotización Viga ${beam.name}`)}&body=${encodeURIComponent(`Hola,\n\nMe interesa cotizar:\n\nViga: ${beam.name}\nCantidad: ${qty} pieza(s)\nLongitud: ${lengthFt} ft (${(lengthFt*FT_TO_M).toFixed(1)} m)\nPeso estimado: ${Math.round(weightKg*qty)} kg\nPrecio estimado: ${fmtPeso(price*qty)} (c/IVA)\n\nFavor de confirmar disponibilidad y precio final.\n\nGracias.`)}`}
                             className="tap" style={{width:"100%",padding:"13px",background:"#111827",color:"#ffffff",borderRadius:12,fontSize:14,fontWeight:700,minHeight:46,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none"}}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                             Contactar por correo electrónico
                           </a>
-                          <a href={`https://wa.me/526616137040?text=${encodeURIComponent(`Hola Surtiaceros, me interesa cotizar:\n\n*Viga ${beam.name}*\n📏 ${lengthFt} ft (${(lengthFt*FT_TO_M).toFixed(1)} m)\n⚖️ ${Math.round(weightKg)} kg\n💰 ${fmtPeso(price)} c/IVA\n\n¿Pueden confirmar disponibilidad?`)}`}
+                          <a href={`https://wa.me/526616137040?text=${encodeURIComponent(`Hola Surtiaceros, me interesa cotizar:\n\n*Viga ${beam.name}*\n📦 ${qty} pieza(s)\n📏 ${lengthFt} ft (${(lengthFt*FT_TO_M).toFixed(1)} m)\n⚖️ ${Math.round(weightKg*qty)} kg\n💰 ${fmtPeso(price*qty)} c/IVA\n\n¿Pueden confirmar disponibilidad?`)}`}
                             target="_blank" rel="noopener noreferrer" className="tap" style={{width:"100%",padding:"13px",background:"#25d366",color:"#ffffff",borderRadius:12,fontSize:14,fontWeight:700,minHeight:46,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none"}}>
                             <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.121 1.532 5.856L.057 23.882l6.198-1.627A11.944 11.944 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.52-5.184-1.426l-.371-.22-3.681.965.982-3.588-.242-.38A9.937 9.937 0 0 1 2 12C2 6.478 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
                             Contactar por WhatsApp
                           </a>
                         </div>
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -842,7 +1101,7 @@ export default function App(): JSX.Element {
           <div style={{flex:1,padding:isMobile?"12px 12px 80px":"16px 20px 40px",maxWidth:640,width:"100%",margin:"0 auto",display:"flex",flexDirection:"column",gap:6}}>
             {catBeams.map((beam,i)=>{
               const weightKg = beam.lbsPerFt * catLength * LBS_TO_KG;
-              const price = weightKg * PRICE_PER_KG;
+              const price = weightKg * pricePerKg;
               const isExp = catSelected === beam.id;
               return (
                 <div key={beam.id} className="rc" style={{animationDelay:`${Math.min(i,20)*0.02}s`}}>
@@ -867,7 +1126,7 @@ export default function App(): JSX.Element {
                       <div style={{background:"#f3f4f6",border:"1px solid #e5e7eb",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#6b7280",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10}}>Precio — {catLength} ft ({(catLength*FT_TO_M).toFixed(1)} m)</div>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-                          {[["Peso total",`${Math.round(weightKg)} kg`],["$/kg","$40 MXN"],["Total c/IVA",fmtPeso(price)]].map(([l,v],j)=>(
+                          {[["Peso total",`${Math.round(weightKg)} kg`],["$/kg",`$${pricePerKg} MXN`],["Total c/IVA",fmtPeso(price)]].map(([l,v],j)=>(
                             <div key={l as string}>
                               <div style={{fontSize:10,color:"#6b7280",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:3,fontWeight:600}}>{l}</div>
                               <div style={{fontSize:j===2?17:13,fontWeight:j===2?800:600,color:j===2?"#15803d":"#111827",fontFamily:"monospace",lineHeight:1}}>{v}</div>
