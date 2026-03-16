@@ -365,6 +365,8 @@ function BeamSVG({ hR=0.5, fR=0.5, wR=0.4, ftR=0.4, size=200, heightInch=null, f
 export default function App(): JSX.Element {
   const isMobile = useIsMobile();
   usePreventZoom();
+  const [splash, setSplash] = useState(true);
+  const [splashFading, setSplashFading] = useState(false);
   const [view, setView] = useState<"search"|"catalog">("search");
   const [height, setHeight] = useState("");
   const [flange, setFlange] = useState("");
@@ -379,6 +381,13 @@ export default function App(): JSX.Element {
   const [catLength, setCatLength] = useState<LengthFt>(20);
   const [catSelected, setCatSelected] = useState<string|null>(null);
   const [catFilter, setCatFilter] = useState<number|null>(null);
+
+  // Splash screen — fades out after 2.8s
+  useEffect(()=>{
+    const t1 = setTimeout(()=>setSplashFading(true), 2200);
+    const t2 = setTimeout(()=>setSplash(false), 2900);
+    return ()=>{ clearTimeout(t1); clearTimeout(t2); };
+  },[]);
 
 
   function generateDatasheet(beam: Beam, lft: LengthFt) {
@@ -575,10 +584,51 @@ export default function App(): JSX.Element {
         ::-webkit-scrollbar{display:none;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
         @keyframes spin{to{transform:rotate(360deg);}}
+        @keyframes splashFlange{0%{transform:scaleX(0);opacity:0}60%{transform:scaleX(1.05);opacity:1}100%{transform:scaleX(1);opacity:1}}
+        @keyframes splashWeb{0%,30%{transform:scaleY(0);opacity:0}80%{transform:scaleY(1.03);opacity:1}100%{transform:scaleY(1);opacity:1}}
+        @keyframes splashText{0%,50%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
+        @keyframes splashSub{0%,65%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+        @keyframes splashFade{0%{opacity:1}100%{opacity:0}}
         .rc{animation:fadeUp 0.35s ease both;}
         .tap:active{transform:scale(0.96);}
         input:focus{border-color:#16a34a!important;box-shadow:0 0 0 3px rgba(22,163,74,0.15)!important;}
       `}</style>
+
+      {/* ── Splash screen ── */}
+      {splash && (
+        <div style={{position:"fixed",inset:0,zIndex:999,background:"#0a0f1a",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:splashFading?"splashFade 0.7s ease forwards":"none",pointerEvents:"none"}}>
+          {/* Animated I-beam SVG */}
+          <svg width="120" height="140" viewBox="0 0 120 140" style={{marginBottom:32,overflow:"visible"}}>
+            {/* Top flange */}
+            <rect x="10" y="10" width="100" height="16" rx="3" fill="#16a34a"
+              style={{transformOrigin:"60px 18px",animation:"splashFlange 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.1s both"}}/>
+            {/* Bottom flange */}
+            <rect x="10" y="114" width="100" height="16" rx="3" fill="#16a34a"
+              style={{transformOrigin:"60px 122px",animation:"splashFlange 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.25s both"}}/>
+            {/* Web */}
+            <rect x="50" y="26" width="20" height="88" fill="#4ade80"
+              style={{transformOrigin:"60px 70px",animation:"splashWeb 0.5s cubic-bezier(0.34,1.4,0.64,1) 0.45s both"}}/>
+            {/* Glow */}
+            <rect x="10" y="10" width="100" height="16" rx="3" fill="none" stroke="#4ade80" strokeWidth="1" opacity="0.4"
+              style={{transformOrigin:"60px 18px",animation:"splashFlange 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.1s both"}}/>
+            <rect x="10" y="114" width="100" height="16" rx="3" fill="none" stroke="#4ade80" strokeWidth="1" opacity="0.4"
+              style={{transformOrigin:"60px 122px",animation:"splashFlange 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.25s both"}}/>
+          </svg>
+          {/* Text */}
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:28,fontWeight:800,color:"#ffffff",letterSpacing:"-0.03em",lineHeight:1.1,animation:"splashText 0.5s ease 0.8s both"}}>
+              Surti<span style={{color:"#4ade80"}}>aceros</span>
+            </div>
+            <div style={{fontSize:13,color:"rgba(255,255,255,0.45)",marginTop:8,fontWeight:500,letterSpacing:"0.04em",animation:"splashSub 0.5s ease 1.1s both"}}>
+              IDENTIFICADOR DE VIGAS DE ACERO
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginTop:20,animation:"splashSub 0.4s ease 1.4s both"}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:"#16a34a",animation:"spin 1.2s linear infinite"}}/>
+              <span style={{fontSize:11,color:"rgba(255,255,255,0.3)",letterSpacing:"0.06em"}}>CARGANDO</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Top banner ── */}
       <div style={{background:"#111827",padding:"7px 20px",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
