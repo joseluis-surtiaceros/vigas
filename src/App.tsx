@@ -546,8 +546,6 @@ export default function App(): JSX.Element {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[height, flange, webInch, flangeTInch, lbsPerFt]);
 
-  const catBeams = BEAMS;
-
   const card: CSSProperties = {
     background:"#ffffff", borderRadius:16, border:"1px solid #e5e7eb",
     padding:"18px", boxShadow:"0 1px 4px rgba(0,0,0,0.04)",
