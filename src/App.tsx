@@ -385,77 +385,105 @@ export default function App(): JSX.Element {
     const price = weightKg * PRICE_PER_KG;
     const fmt = (n:number) => new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(n);
     const date = new Date().toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"});
+    const kgPerM = (beam.lbsPerFt*LBS_TO_KG).toFixed(2);
+    const lftM   = (lft*FT_TO_M).toFixed(1);
+    const flangeVal = beam.flange!=null ? nearestFrac(beam.flange) : "N/D";
+    const flangeDec = beam.flange!=null ? beam.flange.toFixed(3)+'" \xb7 '+(beam.flange*25.4).toFixed(1)+' mm' : "\u2014";
 
-    // Pre-compute SVG
-    const hR2 = Math.max(0,Math.min(1,(beam.height-4)/40));
-    const fR2 = Math.max(0,Math.min(1,((beam.flange??8)-3.5)/13));
-    const wR2 = Math.max(0,Math.min(1,(beam.web-0.17)/1.3));
-    const ftR2 = Math.max(0,Math.min(1,(beam.flangeT-0.17)/2.1));
-    const cx=100, cy=100;
-    const H=60+hR2*90, FW=40+fR2*110, TW=4+wR2*20, TF=4+ftR2*18;
-    const sx1=cx-FW/2, sx2=cx+FW/2, sy1=cy-H/2, sy2=cy+H/2, swx1=cx-TW/2;
+    // SVG diagram with labeled dimensions
+    const hR2=Math.max(0,Math.min(1,(beam.height-4)/40));
+    const fR2=Math.max(0,Math.min(1,((beam.flange??8)-3.5)/13));
+    const wR2=Math.max(0,Math.min(1,(beam.web-0.17)/1.3));
+    const ftR2=Math.max(0,Math.min(1,(beam.flangeT-0.17)/2.1));
+    const cx=120, cy=110;
+    const H=60+hR2*80, FW=50+fR2*80, TW=6+wR2*14, TF=6+ftR2*12;
+    const sx1=cx-FW/2, sx2=cx+FW/2, sy1=cy-H/2, sy2=cy+H/2, swx1=cx-TW/2, swx2=cx+TW/2;
     const svgInner =
-      '<rect x="'+sx1+'" y="'+sy1+'" width="'+FW+'" height="'+TF+'" fill="#1e293b" rx="2"/>' +
-      '<rect x="'+sx1+'" y="'+(sy2-TF)+'" width="'+FW+'" height="'+TF+'" fill="#1e293b" rx="2"/>' +
+      '<defs>' +
+        '<marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#dc2626"/></marker>' +
+        '<marker id="arrS" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#dc2626"/></marker>' +
+        '<marker id="arrB" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#2563eb"/></marker>' +
+        '<marker id="arrBS" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#2563eb"/></marker>' +
+        '<marker id="arrG" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#16a34a"/></marker>' +
+        '<marker id="arrGS" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#16a34a"/></marker>' +
+        '<marker id="arrO" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#d97706"/></marker>' +
+        '<marker id="arrOS" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#d97706"/></marker>' +
+      '</defs>' +
+      // beam shapes
+      '<rect x="'+sx1+'" y="'+sy1+'" width="'+FW+'" height="'+TF+'" fill="#1e293b" rx="1"/>' +
+      '<rect x="'+sx1+'" y="'+(sy2-TF)+'" width="'+FW+'" height="'+TF+'" fill="#1e293b" rx="1"/>' +
       '<rect x="'+swx1+'" y="'+(sy1+TF)+'" width="'+TW+'" height="'+(H-2*TF)+'" fill="#334155"/>' +
-      '<line x1="'+cx+'" y1="'+sy1+'" x2="'+cx+'" y2="'+sy2+'" stroke="#16a34a" stroke-width="0.5" stroke-dasharray="4,3" opacity="0.4"/>' +
-      '<line x1="'+sx1+'" y1="'+cy+'" x2="'+sx2+'" y2="'+cy+'" stroke="#16a34a" stroke-width="0.5" stroke-dasharray="4,3" opacity="0.4"/>';
-
-    const flangeVal  = beam.flange!=null ? nearestFrac(beam.flange) : "N/D";
-    const flangeDec  = beam.flange!=null ? beam.flange.toFixed(3)+'" \xb7 '+(beam.flange*25.4).toFixed(1)+' mm' : "\u2014";
-    const kgPerM     = (beam.lbsPerFt*LBS_TO_KG).toFixed(2);
-    const lftM       = (lft*FT_TO_M).toFixed(1);
+      // h arrow — left outside
+      '<line x1="'+(sx1-14)+'" y1="'+sy1+'" x2="'+(sx1-14)+'" y2="'+sy2+'" stroke="#dc2626" stroke-width="1.2" marker-end="url(#arr)" marker-start="url(#arrS)"/>' +
+      '<text x="'+(sx1-25)+'" y="'+cy+'" fill="#dc2626" font-size="9" font-family="Arial" font-weight="bold" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90,'+(sx1-25)+','+cy+')">Peralte (h)</text>' +
+      // b arrow — bottom outside
+      '<line x1="'+sx1+'" y1="'+(sy2+16)+'" x2="'+sx2+'" y2="'+(sy2+16)+'" stroke="#2563eb" stroke-width="1.2" marker-end="url(#arrB)" marker-start="url(#arrBS)"/>' +
+      '<text x="'+cx+'" y="'+(sy2+27)+'" fill="#2563eb" font-size="9" font-family="Arial" font-weight="bold" text-anchor="middle">Pat\u00edn (b)</text>' +
+      // tw arrow — horizontal across web, at mid-height, right side label
+      '<line x1="'+swx1+'" y1="'+cy+'" x2="'+swx2+'" y2="'+cy+'" stroke="#16a34a" stroke-width="1.2" marker-end="url(#arrG)" marker-start="url(#arrGS)"/>' +
+      '<line x1="'+swx2+'" y1="'+cy+'" x2="'+(sx2+8)+'" y2="'+cy+'" stroke="#16a34a" stroke-width="0.7" stroke-dasharray="3,2"/>' +
+      '<text x="'+(sx2+10)+'" y="'+(cy+4)+'" fill="#16a34a" font-size="9" font-family="Arial" font-weight="bold" text-anchor="start">tw</text>' +
+      // tf arrow — vertical across top flange, right side
+      '<line x1="'+(sx2+20)+'" y1="'+sy1+'" x2="'+(sx2+20)+'" y2="'+(sy1+TF)+'" stroke="#d97706" stroke-width="1.2" marker-end="url(#arrO)" marker-start="url(#arrOS)"/>' +
+      '<line x1="'+sx2+'" y1="'+(sy1+TF/2)+'" x2="'+(sx2+20)+'" y2="'+(sy1+TF/2)+'" stroke="#d97706" stroke-width="0.7" stroke-dasharray="3,2"/>' +
+      '<text x="'+(sx2+24)+'" y="'+(sy1+TF/2+4)+'" fill="#d97706" font-size="9" font-family="Arial" font-weight="bold" text-anchor="start">tf</text>';
 
     const css =
       '*{box-sizing:border-box;margin:0;padding:0}' +
-      'body{font-family:Arial,sans-serif;padding:32px 40px;color:#111;font-size:13px;line-height:1.5;max-width:720px;margin:0 auto}' +
-      '.topbar{background:#111827;color:#fff;text-align:center;font-size:10px;letter-spacing:.1em;padding:7px;margin:-32px -40px 28px;text-transform:uppercase}' +
-      '.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:3px solid #16a34a;margin-bottom:24px}' +
-      '.company h1{font-size:18px;font-weight:800;color:#111827;margin-bottom:4px}' +
+      'body{font-family:Arial,sans-serif;padding:28px 36px;color:#111;font-size:13px;line-height:1.5;max-width:740px;margin:0 auto}' +
+      '.topbar{background:#111827;color:#fff;text-align:center;font-size:10px;letter-spacing:.1em;padding:7px;margin:-28px -36px 24px;text-transform:uppercase}' +
+      '.header{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #16a34a;margin-bottom:22px}' +
+      '.logo-text{font-size:20px;font-weight:800;color:#111827;letter-spacing:-0.02em}' +
+      '.logo-text span{color:#16a34a}' +
       '.company p{font-size:11px;color:#666;margin:1px 0}' +
       '.beam-title{text-align:right}' +
       '.beam-title .label{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em}' +
-      '.beam-title .name{font-size:26px;font-weight:800;color:#16a34a;font-family:monospace;line-height:1.1}' +
-      '.beam-title .sub{font-size:12px;color:#555;margin-top:2px}' +
-      '.svg-section{display:flex;gap:28px;align-items:center;margin-bottom:24px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:20px}' +
+      '.beam-title .name{font-size:24px;font-weight:800;color:#16a34a;font-family:monospace;line-height:1.1}' +
+      '.beam-title .sub{font-size:11px;color:#555;margin-top:2px}' +
+      '.badge{display:inline-block;background:#e0f2fe;color:#0369a1;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:4px;letter-spacing:.03em}' +
+      '.svg-section{display:flex;gap:24px;align-items:center;margin-bottom:22px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:18px}' +
       '.svg-wrap{flex-shrink:0}' +
-      '.dims-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px}' +
-      '.dim-box{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}' +
-      '.dim-box .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;font-weight:700;margin-bottom:3px}' +
-      '.dim-box .val{font-size:15px;font-weight:800;color:#111827;font-family:monospace}' +
+      '.dims-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}' +
+      '.dim-box{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px}' +
+      '.dim-box .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;font-weight:700;margin-bottom:2px}' +
+      '.dim-box .val{font-size:14px;font-weight:800;color:#111827;font-family:monospace}' +
       '.dim-box .sub{font-size:10px;color:#9ca3af;font-family:monospace;margin-top:1px}' +
-      '.price-section{background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:18px 22px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}' +
-      '.price-item .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#15803d;font-weight:700;margin-bottom:3px}' +
-      '.price-item .val{font-size:16px;font-weight:800;color:#111827;font-family:monospace}' +
-      '.price-total .val{font-size:26px;color:#15803d}' +
-      '.info-box{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:11px;color:#7c2d12;line-height:1.7}' +
-      '.footer{border-top:1px solid #e5e7eb;padding-top:12px;text-align:center;font-size:10px;color:#9ca3af;line-height:1.8}' +
+      '.price-section{background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}' +
+      '.price-item .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#15803d;font-weight:700;margin-bottom:2px}' +
+      '.price-item .val{font-size:15px;font-weight:800;color:#111827;font-family:monospace}' +
+      '.price-total .val{font-size:24px;color:#15803d}' +
+      '.info-box{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:11px 15px;margin-bottom:18px;font-size:11px;color:#7c2d12;line-height:1.8}' +
+      '.footer{border-top:1px solid #e5e7eb;padding-top:11px;text-align:center;font-size:10px;color:#9ca3af;line-height:1.8}' +
       '.footer .green{color:#16a34a;font-weight:700}' +
-      '@media print{body{padding:16px 20px}.topbar{margin:-16px -20px 20px}@page{margin:1cm}}';
+      '@media print{body{padding:14px 18px}.topbar{margin:-14px -18px 18px}@page{margin:1cm}}';
 
     const body =
       '<div class="topbar">Surtiaceros del Pac\u00edfico S.A. de C.V. &nbsp;&middot;&nbsp; Ficha T\u00e9cnica de Producto</div>' +
       '<div class="header">' +
         '<div class="company">' +
-          '<h1>Surtiaceros del Pac\u00edfico</h1>' +
+          '<div class="logo-text">Surti<span>aceros</span></div>' +
+          '<p style="font-weight:700;font-size:12px;color:#374151">del Pac\u00edfico S.A. de C.V.</p>' +
           '<p>Calle Aguascalientes No. 4255, Col. Constituci\u00f3n</p>' +
           '<p>Playas de Rosarito, B.C., C.P. 22707 &middot; Tel. 661 613 7038 / 7040</p>' +
           '<p>contacto@surtiaceros.com &middot; surtiaceros.com</p>' +
-          '<p style="margin-top:6px;font-size:10px;color:#aaa">'+date+'</p>' +
         '</div>' +
         '<div class="beam-title">' +
           '<div class="label">Perfil Estructural</div>' +
           '<div class="name">Viga '+beam.name+'</div>' +
           '<div class="sub">'+beam.lbsPerFt+' lb/ft &nbsp;&middot;&nbsp; '+kgPerM+' kg/m</div>' +
+          '<div class="badge">Acero A36 &middot; ASTM A36</div>' +
+          '<p style="font-size:10px;color:#aaa;margin-top:6px">'+date+'</p>' +
         '</div>' +
       '</div>' +
       '<div class="svg-section">' +
-        '<div class="svg-wrap"><svg width="160" height="160" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">'+svgInner+'</svg></div>' +
+        '<div class="svg-wrap">' +
+          '<svg width="220" height="210" viewBox="0 0 250 220" xmlns="http://www.w3.org/2000/svg">'+svgInner+'</svg>' +
+        '</div>' +
         '<div class="dims-grid">' +
-          '<div class="dim-box"><div class="lbl">Peralte (h)</div><div class="val">'+nearestFrac(beam.height)+'</div><div class="sub">'+beam.height.toFixed(3)+'" &middot; '+(beam.height*25.4).toFixed(1)+' mm</div></div>' +
-          '<div class="dim-box"><div class="lbl">Pat\u00edn (b)</div><div class="val">'+flangeVal+'</div><div class="sub">'+flangeDec+'</div></div>' +
-          '<div class="dim-box"><div class="lbl">Esp. Alma (tw)</div><div class="val">'+nearestFrac(beam.web)+'</div><div class="sub">'+beam.web.toFixed(3)+'" &middot; '+(beam.web*25.4).toFixed(1)+' mm</div></div>' +
-          '<div class="dim-box"><div class="lbl">Esp. Pat\u00edn (tf)</div><div class="val">'+nearestFrac(beam.flangeT)+'</div><div class="sub">'+beam.flangeT.toFixed(3)+'" &middot; '+(beam.flangeT*25.4).toFixed(1)+' mm</div></div>' +
+          '<div class="dim-box"><div class="lbl" style="color:#dc2626">&#9632; Peralte (h)</div><div class="val">'+nearestFrac(beam.height)+'</div><div class="sub">'+beam.height.toFixed(3)+'" &middot; '+(beam.height*25.4).toFixed(1)+' mm</div></div>' +
+          '<div class="dim-box"><div class="lbl" style="color:#2563eb">&#9632; Pat\u00edn (b)</div><div class="val">'+flangeVal+'</div><div class="sub">'+flangeDec+'</div></div>' +
+          '<div class="dim-box"><div class="lbl" style="color:#16a34a">&#9632; Esp. Alma (tw)</div><div class="val">'+nearestFrac(beam.web)+'</div><div class="sub">'+beam.web.toFixed(3)+'" &middot; '+(beam.web*25.4).toFixed(1)+' mm</div></div>' +
+          '<div class="dim-box"><div class="lbl" style="color:#d97706">&#9632; Esp. Pat\u00edn (tf)</div><div class="val">'+nearestFrac(beam.flangeT)+'</div><div class="sub">'+beam.flangeT.toFixed(3)+'" &middot; '+(beam.flangeT*25.4).toFixed(1)+' mm</div></div>' +
           '<div class="dim-box" style="grid-column:span 2"><div class="lbl">Peso lineal</div><div class="val">'+beam.lbsPerFt+' lb/ft &nbsp;&middot;&nbsp; '+kgPerM+' kg/m</div></div>' +
         '</div>' +
       '</div>' +
@@ -465,12 +493,20 @@ export default function App(): JSX.Element {
         '<div class="price-item"><div class="lbl">Precio por kg c/IVA</div><div class="val">$'+PRICE_PER_KG+' MXN</div></div>' +
         '<div class="price-item price-total"><div class="lbl">Precio estimado c/IVA</div><div class="val">'+fmt(price)+'</div></div>' +
       '</div>' +
-      '<div class="info-box">&#9888;&#65039; <strong>Nota:</strong> Precio de referencia sujeto a cambio sin previo aviso. Sujeto a disponibilidad de inventario. El costo de flete est\u00e1 incluido en pedidos con entrega dentro de los municipios de Playas de Rosarito y Tijuana, B.C. Para entregas for\u00e1neas, el flete se cotiza por separado seg\u00fan destino y volumen.</div>' +
+      '<div class="info-box">&#9888;&#65039; <strong>Nota:</strong> Precio de referencia sujeto a cambios sin previo aviso y a disponibilidad de inventario. El flete es gratis en pedidos con entrega dentro de los municipios de Playas de Rosarito y Tijuana, B.C. Para entregas for\u00e1neas, el costo de env\u00edo se cotiza por separado seg\u00fan el destino y el volumen del pedido. Favor de consultar con un agente el tiempo estimado de entrega.</div>' +
       '<div class="footer"><span class="green">Surtiaceros del Pac\u00edfico S.A. de C.V.</span> &nbsp;&middot;&nbsp; Tel. 661 613 7038 / 7040 &nbsp;&middot;&nbsp; contacto@surtiaceros.com &nbsp;&middot;&nbsp; surtiaceros.com<br>Ficha generada el '+date+' &nbsp;&middot;&nbsp; Todos los derechos reservados &copy; '+new Date().getFullYear()+'</div>';
 
-    const html = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Ficha T\u00e9cnica \u2014 Viga '+beam.name+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
+    // Add print button to the HTML and open in new tab
+    const printBtn = '<div style="position:fixed;top:16px;right:16px;z-index:999;display:flex;gap:8px">' +
+      '<button onclick="window.print()" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:Arial;box-shadow:0 2px 8px rgba(0,0,0,0.2)">🖨️ Imprimir / Guardar PDF</button>' +
+      '<button onclick="window.close()" style="background:#374151;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:Arial">✕ Cerrar</button>' +
+      '</div>' +
+      '<style>@media print{.no-print{display:none!important}}</style>' +
+      '<div class="no-print" style="height:52px"></div>';
+
+    const html = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Ficha T\u00e9cnica \u2014 Viga '+beam.name+'</title><style>'+css+'</style></head><body>'+printBtn+body+'</body></html>';
     const w = window.open("","_blank");
-    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(()=>w.print(),400); }
+    if (w) { w.document.write(html); w.document.close(); w.focus(); }
   }
 
   const catBeamObj = BEAMS.find(b => b.id === catSelected) ?? null;
@@ -850,7 +886,7 @@ export default function App(): JSX.Element {
                           <button type="button" onClick={()=>generateDatasheet(beam,lengthFt)} className="tap"
                             style={{width:"100%",padding:"13px",background:"#f8fafc",color:"#374151",border:"1.5px solid #e5e7eb",borderRadius:12,fontSize:14,fontWeight:700,minHeight:46,display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer"}}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                            Descargar ficha técnica PDF
+                            Consultar e imprimir ficha técnica
                           </button>
                           <a href={`mailto:contacto@surtiaceros.com?subject=${encodeURIComponent(`Cotización Viga ${beam.name}`)}&body=${encodeURIComponent(`Hola,\n\nMe interesa cotizar:\n\nViga: ${beam.name}\nLongitud: ${lengthFt} ft (${(lengthFt*FT_TO_M).toFixed(1)} m)\nPeso estimado: ${Math.round(weightKg)} kg\nPrecio estimado: ${fmtPeso(price)} (c/IVA)\n\nFavor de confirmar disponibilidad y precio final.\n\nGracias.`)}`}
                             className="tap" style={{width:"100%",padding:"13px",background:"#111827",color:"#ffffff",borderRadius:12,fontSize:14,fontWeight:700,minHeight:46,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none"}}>
