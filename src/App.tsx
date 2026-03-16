@@ -13,7 +13,7 @@ type Beam = {
   id: string; name: string; lbsPerFt: number;
   height: number; heightR: number; flange: number | null; flangeT: number; web: number;
 };
-type SearchInput = { height: number; flange: number; web: number | null; flangeT: number | null };
+type SearchInput = { height: number|null; flange: number|null; web: number | null; flangeT: number | null; lbsPerFt: number|null };
 type ClosestResult = { beam: Beam; dist: number };
 type Ranges = { height:{min:number;max:number}; flange:{min:number;max:number}; web:{min:number;max:number}; flangeT:{min:number;max:number} };
 type LengthFt = 20 | 40;
@@ -253,13 +253,16 @@ function computeRanges(beams: Beam[]): Ranges {
 function norm(v:number,min:number,max:number){ return max===min?0:(v-min)/(max-min); }
 function findClosest(input: SearchInput, top=4): ClosestResult[] {
   const r = computeRanges(BEAMS);
+  const lbsMin = Math.min(...BEAMS.map(b=>b.lbsPerFt));
+  const lbsMax = Math.max(...BEAMS.map(b=>b.lbsPerFt));
   return BEAMS.map(b => {
     const fv = b.flange ?? (r.flange.min+r.flange.max)/2;
-    const dH=norm(input.height,r.height.min,r.height.max)-norm(b.height,r.height.min,r.height.max);
-    const dF=norm(input.flange,r.flange.min,r.flange.max)-norm(fv,r.flange.min,r.flange.max);
-    const dW=input.web!=null?norm(input.web,r.web.min,r.web.max)-norm(b.web,r.web.min,r.web.max):0;
-    const dT=input.flangeT!=null?norm(input.flangeT,r.flangeT.min,r.flangeT.max)-norm(b.flangeT,r.flangeT.min,r.flangeT.max):0;
-    return { beam:b, dist:Math.sqrt(dH*dH*1.5+dF*dF*1.2+dW*dW*0.8+dT*dT*0.8) };
+    const dH = input.height!=null ? norm(input.height,r.height.min,r.height.max)-norm(b.height,r.height.min,r.height.max) : 0;
+    const dF = input.flange!=null ? norm(input.flange,r.flange.min,r.flange.max)-norm(fv,r.flange.min,r.flange.max) : 0;
+    const dW = input.web!=null ? norm(input.web,r.web.min,r.web.max)-norm(b.web,r.web.min,r.web.max) : 0;
+    const dT = input.flangeT!=null ? norm(input.flangeT,r.flangeT.min,r.flangeT.max)-norm(b.flangeT,r.flangeT.min,r.flangeT.max) : 0;
+    const dL = input.lbsPerFt!=null ? norm(input.lbsPerFt,lbsMin,lbsMax)-norm(b.lbsPerFt,lbsMin,lbsMax) : 0;
+    return { beam:b, dist:Math.sqrt(dH*dH*1.5+dF*dF*1.2+dW*dW*0.8+dT*dT*0.8+dL*dL*1.3) };
   }).sort((a,b)=>a.dist-b.dist).slice(0,top);
 }
 
@@ -367,6 +370,7 @@ export default function App(): JSX.Element {
   const [flange, setFlange] = useState("");
   const [webInch, setWebInch] = useState<number|null>(null);
   const [flangeTInch, setFlangeTInch] = useState<number|null>(null);
+  const [lbsPerFt, setLbsPerFt] = useState("");
   const [lengthFt, setLengthFt] = useState<LengthFt>(20);
   const [results, setResults] = useState<ClosestResult[]>([]);
   const [searched, setSearched] = useState(false);
@@ -376,6 +380,99 @@ export default function App(): JSX.Element {
   const [catSelected, setCatSelected] = useState<string|null>(null);
 
 
+  function generateDatasheet(beam: Beam, lft: LengthFt) {
+    const weightKg = beam.lbsPerFt * lft * LBS_TO_KG;
+    const price = weightKg * PRICE_PER_KG;
+    const fmt = (n:number) => new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(n);
+    const date = new Date().toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"});
+
+    // Pre-compute SVG
+    const hR2 = Math.max(0,Math.min(1,(beam.height-4)/40));
+    const fR2 = Math.max(0,Math.min(1,((beam.flange??8)-3.5)/13));
+    const wR2 = Math.max(0,Math.min(1,(beam.web-0.17)/1.3));
+    const ftR2 = Math.max(0,Math.min(1,(beam.flangeT-0.17)/2.1));
+    const cx=100, cy=100;
+    const H=60+hR2*90, FW=40+fR2*110, TW=4+wR2*20, TF=4+ftR2*18;
+    const sx1=cx-FW/2, sx2=cx+FW/2, sy1=cy-H/2, sy2=cy+H/2, swx1=cx-TW/2;
+    const svgInner =
+      '<rect x="'+sx1+'" y="'+sy1+'" width="'+FW+'" height="'+TF+'" fill="#1e293b" rx="2"/>' +
+      '<rect x="'+sx1+'" y="'+(sy2-TF)+'" width="'+FW+'" height="'+TF+'" fill="#1e293b" rx="2"/>' +
+      '<rect x="'+swx1+'" y="'+(sy1+TF)+'" width="'+TW+'" height="'+(H-2*TF)+'" fill="#334155"/>' +
+      '<line x1="'+cx+'" y1="'+sy1+'" x2="'+cx+'" y2="'+sy2+'" stroke="#16a34a" stroke-width="0.5" stroke-dasharray="4,3" opacity="0.4"/>' +
+      '<line x1="'+sx1+'" y1="'+cy+'" x2="'+sx2+'" y2="'+cy+'" stroke="#16a34a" stroke-width="0.5" stroke-dasharray="4,3" opacity="0.4"/>';
+
+    const flangeVal  = beam.flange!=null ? nearestFrac(beam.flange) : "N/D";
+    const flangeDec  = beam.flange!=null ? beam.flange.toFixed(3)+'" \xb7 '+(beam.flange*25.4).toFixed(1)+' mm' : "\u2014";
+    const kgPerM     = (beam.lbsPerFt*LBS_TO_KG).toFixed(2);
+    const lftM       = (lft*FT_TO_M).toFixed(1);
+
+    const css =
+      '*{box-sizing:border-box;margin:0;padding:0}' +
+      'body{font-family:Arial,sans-serif;padding:32px 40px;color:#111;font-size:13px;line-height:1.5;max-width:720px;margin:0 auto}' +
+      '.topbar{background:#111827;color:#fff;text-align:center;font-size:10px;letter-spacing:.1em;padding:7px;margin:-32px -40px 28px;text-transform:uppercase}' +
+      '.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:3px solid #16a34a;margin-bottom:24px}' +
+      '.company h1{font-size:18px;font-weight:800;color:#111827;margin-bottom:4px}' +
+      '.company p{font-size:11px;color:#666;margin:1px 0}' +
+      '.beam-title{text-align:right}' +
+      '.beam-title .label{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em}' +
+      '.beam-title .name{font-size:26px;font-weight:800;color:#16a34a;font-family:monospace;line-height:1.1}' +
+      '.beam-title .sub{font-size:12px;color:#555;margin-top:2px}' +
+      '.svg-section{display:flex;gap:28px;align-items:center;margin-bottom:24px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:20px}' +
+      '.svg-wrap{flex-shrink:0}' +
+      '.dims-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px}' +
+      '.dim-box{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}' +
+      '.dim-box .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;font-weight:700;margin-bottom:3px}' +
+      '.dim-box .val{font-size:15px;font-weight:800;color:#111827;font-family:monospace}' +
+      '.dim-box .sub{font-size:10px;color:#9ca3af;font-family:monospace;margin-top:1px}' +
+      '.price-section{background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:18px 22px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}' +
+      '.price-item .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#15803d;font-weight:700;margin-bottom:3px}' +
+      '.price-item .val{font-size:16px;font-weight:800;color:#111827;font-family:monospace}' +
+      '.price-total .val{font-size:26px;color:#15803d}' +
+      '.info-box{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:11px;color:#7c2d12;line-height:1.7}' +
+      '.footer{border-top:1px solid #e5e7eb;padding-top:12px;text-align:center;font-size:10px;color:#9ca3af;line-height:1.8}' +
+      '.footer .green{color:#16a34a;font-weight:700}' +
+      '@media print{body{padding:16px 20px}.topbar{margin:-16px -20px 20px}@page{margin:1cm}}';
+
+    const body =
+      '<div class="topbar">Surtiaceros del Pac\u00edfico S.A. de C.V. &nbsp;&middot;&nbsp; Ficha T\u00e9cnica de Producto</div>' +
+      '<div class="header">' +
+        '<div class="company">' +
+          '<h1>Surtiaceros del Pac\u00edfico</h1>' +
+          '<p>Calle Aguascalientes No. 4255, Col. Constituci\u00f3n</p>' +
+          '<p>Playas de Rosarito, B.C., C.P. 22707 &middot; Tel. 661 613 7038 / 7040</p>' +
+          '<p>contacto@surtiaceros.com &middot; surtiaceros.com</p>' +
+          '<p style="margin-top:6px;font-size:10px;color:#aaa">'+date+'</p>' +
+        '</div>' +
+        '<div class="beam-title">' +
+          '<div class="label">Perfil Estructural</div>' +
+          '<div class="name">Viga '+beam.name+'</div>' +
+          '<div class="sub">'+beam.lbsPerFt+' lb/ft &nbsp;&middot;&nbsp; '+kgPerM+' kg/m</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="svg-section">' +
+        '<div class="svg-wrap"><svg width="160" height="160" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">'+svgInner+'</svg></div>' +
+        '<div class="dims-grid">' +
+          '<div class="dim-box"><div class="lbl">Peralte (h)</div><div class="val">'+nearestFrac(beam.height)+'</div><div class="sub">'+beam.height.toFixed(3)+'" &middot; '+(beam.height*25.4).toFixed(1)+' mm</div></div>' +
+          '<div class="dim-box"><div class="lbl">Pat\u00edn (b)</div><div class="val">'+flangeVal+'</div><div class="sub">'+flangeDec+'</div></div>' +
+          '<div class="dim-box"><div class="lbl">Esp. Alma (tw)</div><div class="val">'+nearestFrac(beam.web)+'</div><div class="sub">'+beam.web.toFixed(3)+'" &middot; '+(beam.web*25.4).toFixed(1)+' mm</div></div>' +
+          '<div class="dim-box"><div class="lbl">Esp. Pat\u00edn (tf)</div><div class="val">'+nearestFrac(beam.flangeT)+'</div><div class="sub">'+beam.flangeT.toFixed(3)+'" &middot; '+(beam.flangeT*25.4).toFixed(1)+' mm</div></div>' +
+          '<div class="dim-box" style="grid-column:span 2"><div class="lbl">Peso lineal</div><div class="val">'+beam.lbsPerFt+' lb/ft &nbsp;&middot;&nbsp; '+kgPerM+' kg/m</div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="price-section">' +
+        '<div class="price-item"><div class="lbl">Longitud</div><div class="val">'+lft+' ft &nbsp;&middot;&nbsp; '+lftM+' m</div></div>' +
+        '<div class="price-item"><div class="lbl">Peso total estimado</div><div class="val">'+Math.round(weightKg)+' kg</div></div>' +
+        '<div class="price-item"><div class="lbl">Precio por kg c/IVA</div><div class="val">$'+PRICE_PER_KG+' MXN</div></div>' +
+        '<div class="price-item price-total"><div class="lbl">Precio estimado c/IVA</div><div class="val">'+fmt(price)+'</div></div>' +
+      '</div>' +
+      '<div class="info-box">&#9888;&#65039; <strong>Nota:</strong> Precio de referencia sujeto a cambio sin previo aviso. Sujeto a disponibilidad de inventario. El costo de flete est\u00e1 incluido en pedidos con entrega dentro de los municipios de Playas de Rosarito y Tijuana, B.C. Para entregas for\u00e1neas, el flete se cotiza por separado seg\u00fan destino y volumen.</div>' +
+      '<div class="footer"><span class="green">Surtiaceros del Pac\u00edfico S.A. de C.V.</span> &nbsp;&middot;&nbsp; Tel. 661 613 7038 / 7040 &nbsp;&middot;&nbsp; contacto@surtiaceros.com &nbsp;&middot;&nbsp; surtiaceros.com<br>Ficha generada el '+date+' &nbsp;&middot;&nbsp; Todos los derechos reservados &copy; '+new Date().getFullYear()+'</div>';
+
+    const html = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Ficha T\u00e9cnica \u2014 Viga '+beam.name+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
+    const w = window.open("","_blank");
+    if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(()=>w.print(),400); }
+  }
+
   const catBeamObj = BEAMS.find(b => b.id === catSelected) ?? null;
   const catHR  = catBeamObj ? Math.max(0,Math.min(1,(catBeamObj.height-4)/40))        : 0.3;
   const catFR  = catBeamObj ? Math.max(0,Math.min(1,((catBeamObj.flange??8)-3.5)/13)) : 0.4;
@@ -384,6 +481,7 @@ export default function App(): JSX.Element {
 
   const hI = height ? parseFloat(height) : null;
   const fI = flange ? parseFloat(flange) : null;
+  const lbsI = lbsPerFt ? parseFloat(lbsPerFt) : null;
   const dispBeam = selected ?? null;
   const hR  = dispBeam ? Math.max(0,Math.min(1,(dispBeam.height-4)/40))            : (hI ? Math.max(0,Math.min(1,(hI-4)/40)) : 0.3);
   const fR  = dispBeam ? Math.max(0,Math.min(1,((dispBeam.flange??8)-3.5)/13))     : (fI ? Math.max(0,Math.min(1,(fI-3.5)/13)) : 0.4);
@@ -393,23 +491,23 @@ export default function App(): JSX.Element {
   const svgF  = dispBeam ? (dispBeam.flange ?? null) : fI;
   const svgW  = dispBeam ? dispBeam.web             : webInch;
   const svgFT = dispBeam ? dispBeam.flangeT         : flangeTInch;
-  const canSearch = !!(height && flange && !loading);
+  const canSearch = !!(!loading && (height || flange || webInch || flangeTInch || lbsPerFt));
 
   function doSearch() {
-    if (!canSearch||hI==null||fI==null) return;
+    if (!canSearch) return;
     setLoading(true); setSelected(null);
-    setTimeout(()=>{ setResults(findClosest({height:hI,flange:fI,web:webInch,flangeT:flangeTInch})); setSearched(true); setLoading(false); },380);
+    setTimeout(()=>{ setResults(findClosest({height:hI,flange:fI,web:webInch,flangeT:flangeTInch,lbsPerFt:lbsI})); setSearched(true); setLoading(false); },380);
   }
 
-  // Auto-search when both dimensions are selected
+  // Auto-search when any dimension changes
   useEffect(()=>{
-    if (height && flange && hI && fI) {
+    if (height || flange || webInch || flangeTInch || lbsPerFt) {
       setLoading(true); setSelected(null);
-      const t = setTimeout(()=>{ setResults(findClosest({height:hI,flange:fI,web:webInch,flangeT:flangeTInch})); setSearched(true); setLoading(false); },300);
+      const t = setTimeout(()=>{ setResults(findClosest({height:hI,flange:fI,web:webInch,flangeT:flangeTInch,lbsPerFt:lbsI})); setSearched(true); setLoading(false); },300);
       return ()=>clearTimeout(t);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[height, flange, webInch, flangeTInch]);
+  },[height, flange, webInch, flangeTInch, lbsPerFt]);
 
   const catBeams = BEAMS;
 
@@ -496,7 +594,7 @@ export default function App(): JSX.Element {
         <div style={{...card,display:"flex",flexDirection:"column",gap:16}}>
           <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6}}>
             Dimensiones principales
-            <span style={{background:"#fef2f2",color:"#ef4444",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20}}>Requerido</span>
+            <span style={{background:"#f0fdf4",color:"#16a34a",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20}}>Opcional</span>
           </div>
 
           {/* Height selector */}
@@ -560,7 +658,7 @@ export default function App(): JSX.Element {
 
           {/* Clear selection */}
           {(height || flange) && (
-            <button type="button" onClick={()=>{setHeight("");setFlange("");setResults([]);setSearched(false);setSelected(null);}} style={{alignSelf:"flex-start",fontSize:12,color:"#9ca3af",background:"none",border:"none",cursor:"pointer",padding:"2px 0",fontWeight:500}}>
+            <button type="button" onClick={()=>{setHeight("");setFlange("");setLbsPerFt("");setResults([]);setSearched(false);setSelected(null);}} style={{alignSelf:"flex-start",fontSize:12,color:"#9ca3af",background:"none",border:"none",cursor:"pointer",padding:"2px 0",fontWeight:500}}>
               ✕ Limpiar selección
             </button>
           )}
@@ -637,6 +735,24 @@ export default function App(): JSX.Element {
               </div>
             );
           })()}
+        </div>
+
+        {/* Peso lineal */}
+        <div style={{...card,display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6}}>
+            Peso lineal
+            <span style={{background:"#f0fdf4",color:"#16a34a",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20}}>Opcional</span>
+          </div>
+          <div style={{position:"relative"}}>
+            <input
+              type="number" inputMode="decimal" value={lbsPerFt}
+              onChange={e=>{ setLbsPerFt(e.target.value); setSelected(null); }}
+              placeholder="ej. 50"
+              style={{width:"100%",padding:"11px 60px 11px 14px",border:`1.5px solid ${lbsPerFt?"#16a34a":"#e5e7eb"}`,borderRadius:12,fontSize:16,fontWeight:500,color:"#111827",fontFamily:"'JetBrains Mono','Fira Mono',monospace",outline:"none",background:"#ffffff",WebkitAppearance:"none",MozAppearance:"textfield" as CSSProperties["MozAppearance"],transition:"border-color 0.2s, box-shadow 0.2s"}}
+            />
+            <span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:11,fontWeight:700,color:lbsPerFt?"#16a34a":"#9ca3af",fontFamily:"monospace",pointerEvents:"none"}}>lb/ft</span>
+          </div>
+          <div style={{fontSize:11,color:"#9ca3af"}}>Rango del catálogo: 8 – 290 lb/ft</div>
         </div>
 
         {/* Length */}
@@ -731,7 +847,11 @@ export default function App(): JSX.Element {
                           ))}
                         </div>
                         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                          <a href={`mailto:contacto@surtiaceros.com?subject=${encodeURIComponent(`Cotización Viga ${beam.name}`)}&body=${encodeURIComponent(`Hola,\n\nMe interesa cotizar:\n\nViga: ${beam.name}\nLongitud: ${lengthFt} ft (${(lengthFt*FT_TO_M).toFixed(1)} m)\nPeso estimado: ${Math.round(weightKg)} kg\nPrecio estimado: ${fmtPeso(price)} (c/IVA)\n\nFavor de confirmar disponibilidad y precio final.\n\nGracias.`)}`}
+                          <button type="button" onClick={()=>generateDatasheet(beam,lengthFt)} className="tap"
+                            style={{width:"100%",padding:"13px",background:"#f8fafc",color:"#374151",border:"1.5px solid #e5e7eb",borderRadius:12,fontSize:14,fontWeight:700,minHeight:46,display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer"}}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            Descargar ficha técnica PDF
+                          </button>contacto@surtiaceros.com?subject=${encodeURIComponent(`Cotización Viga ${beam.name}`)}&body=${encodeURIComponent(`Hola,\n\nMe interesa cotizar:\n\nViga: ${beam.name}\nLongitud: ${lengthFt} ft (${(lengthFt*FT_TO_M).toFixed(1)} m)\nPeso estimado: ${Math.round(weightKg)} kg\nPrecio estimado: ${fmtPeso(price)} (c/IVA)\n\nFavor de confirmar disponibilidad y precio final.\n\nGracias.`)}`}
                             className="tap" style={{width:"100%",padding:"13px",background:"#111827",color:"#ffffff",borderRadius:12,fontSize:14,fontWeight:700,minHeight:46,display:"flex",alignItems:"center",justifyContent:"center",gap:8,textDecoration:"none"}}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                             Contactar por correo electrónico
