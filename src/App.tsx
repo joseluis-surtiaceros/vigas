@@ -378,6 +378,7 @@ export default function App(): JSX.Element {
   const [selected, setSelected] = useState<Beam|null>(null);
   const [catLength, setCatLength] = useState<LengthFt>(20);
   const [catSelected, setCatSelected] = useState<string|null>(null);
+  const [catFilter, setCatFilter] = useState<number|null>(null);
 
 
   function generateDatasheet(beam: Beam, lft: LengthFt) {
@@ -939,11 +940,24 @@ export default function App(): JSX.Element {
             <div style={{maxWidth:640,margin:"0 auto"}}>
               <div style={{fontSize:isMobile?18:22,fontWeight:800,color:"#ffffff",marginBottom:4}}>Catálogo de Vigas</div>
               <div style={{fontSize:13,color:"rgba(255,255,255,0.45)",marginBottom:12}}>{BEAMS.length} perfiles disponibles</div>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                 <span style={{fontSize:12,color:"rgba(255,255,255,0.45)",fontWeight:600}}>Ver precios para:</span>
                 <div style={{display:"flex",background:"rgba(255,255,255,0.08)",borderRadius:8,padding:3,gap:2}}>
                   {LENGTH_OPTIONS.map(ft=>(
                     <button key={ft} type="button" onClick={()=>setCatLength(ft)} className="tap" style={{padding:"6px 14px",borderRadius:6,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,transition:"all 0.15s",background:catLength===ft?"#16a34a":"transparent",color:catLength===ft?"#ffffff":"rgba(255,255,255,0.5)",minHeight:30}}>{ft} ft</button>
+                  ))}
+                </div>
+              </div>
+              {/* Filter by height */}
+              <div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6}}>Filtrar por peralte</div>
+                <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
+                  <button type="button" onClick={()=>setCatFilter(null)} className="tap" style={{flexShrink:0,padding:"5px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,background:catFilter===null?"#16a34a":"rgba(255,255,255,0.1)",color:catFilter===null?"#fff":"rgba(255,255,255,0.6)",minHeight:30}}>Todos</button>
+                  {Array.from(new Set(BEAMS.map(b=>b.heightR))).sort((a,b)=>a-b).map(h=>(
+                    <button key={h} type="button" onClick={()=>{ setCatFilter(catFilter===h?null:h); setCatSelected(null); }} className="tap"
+                      style={{flexShrink:0,padding:"5px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"monospace",background:catFilter===h?"#16a34a":"rgba(255,255,255,0.1)",color:catFilter===h?"#fff":"rgba(255,255,255,0.6)",minHeight:30}}>
+                      {h}"
+                    </button>
                   ))}
                 </div>
               </div>
@@ -958,7 +972,12 @@ export default function App(): JSX.Element {
           </div>
 
           <div style={{flex:1,padding:isMobile?"12px 12px 80px":"16px 20px 40px",maxWidth:640,width:"100%",margin:"0 auto",display:"flex",flexDirection:"column",gap:6}}>
-            {catBeams.map((beam,i)=>{
+            {catFilter && (
+              <div style={{fontSize:12,color:"#6b7280",paddingBottom:2}}>
+                Mostrando vigas de <span style={{fontWeight:800,color:"#16a34a",fontFamily:"monospace"}}>{catFilter}"</span> · {BEAMS.filter(b=>b.heightR===catFilter).length} perfiles
+              </div>
+            )}
+            {(catFilter ? BEAMS.filter(b=>b.heightR===catFilter) : BEAMS).map((beam,i)=>{
               const weightKg = beam.lbsPerFt * catLength * LBS_TO_KG;
               const price = weightKg * PRICE_PER_KG;
               const isExp = catSelected === beam.id;
@@ -1020,6 +1039,11 @@ export default function App(): JSX.Element {
                         }).filter(Boolean)}
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        <button type="button" onClick={()=>generateDatasheet(beam,catLength)} className="tap"
+                          style={{width:"100%",padding:"12px",background:"#f8fafc",color:"#374151",border:"1.5px solid #e5e7eb",borderRadius:12,fontSize:13,fontWeight:700,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center",gap:7,cursor:"pointer"}}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                          Consultar e imprimir ficha técnica
+                        </button>
                         <a href={`mailto:contacto@surtiaceros.com?subject=${encodeURIComponent(`Cotización Viga ${beam.name}`)}&body=${encodeURIComponent(`Hola,\n\nMe interesa cotizar:\n\nViga: ${beam.name}\nLongitud: ${catLength} ft (${(catLength*FT_TO_M).toFixed(1)} m)\nPeso estimado: ${Math.round(weightKg)} kg\nPrecio estimado: ${fmtPeso(price)} (c/IVA)\n\nFavor de confirmar disponibilidad y precio final.\n\nGracias.`)}`}
                           className="tap" style={{width:"100%",padding:"12px",background:"#111827",color:"#ffffff",borderRadius:12,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:7,textDecoration:"none",minHeight:44}}>
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
