@@ -4,7 +4,7 @@
 // ║  PRECIO_POR_KG : precio de venta por kilogramo con IVA      ║
 // ║  Para actualizar: cambia el número y haz commit en GitHub   ║
 // ╚══════════════════════════════════════════════════════════════╝
-const PRICE_PER_KG = 40; // ← CAMBIA ESTE NÚMERO (MXN/kg con IVA)
+const PRICE_PER_KG = 38; // ← CAMBIA ESTE NÚMERO (MXN/kg con IVA)
 
 import { useState, useEffect, type CSSProperties, type JSX } from "react";
 
