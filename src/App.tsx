@@ -207,12 +207,6 @@ const BEAMS: Beam[] = [
 { id:"v44x290", name:'44" × 290 lb/ft', lbsPerFt:290, height:43.6, heightR:44, flange:null, flangeT:1.57, web:0.87 },
 ];
 
-// ╔══════════════════════════════════════════════════════════════╗
-// ║  CONFIGURACIÓN — edita estos valores directamente aquí      ║
-// ╠══════════════════════════════════════════════════════════════╣
-// ║  PRECIO_POR_KG : precio de venta por kilogramo con IVA      ║
-// ║  Para actualizar: cambia el número y haz commit en GitHub   ║
-// ╚══════════════════════════════════════════════════════════════╝
 const LBS_TO_KG = 0.453592;
 const FT_TO_M = 0.3048;
 const LENGTH_OPTIONS: LengthFt[] = [20, 40];
@@ -382,13 +376,11 @@ export default function App(): JSX.Element {
   const [catSelected, setCatSelected] = useState<string|null>(null);
   const [catFilter, setCatFilter] = useState<number|null>(null);
 
-  // Splash screen — fades out after 2.8s
   useEffect(()=>{
     const t1 = setTimeout(()=>setSplashFading(true), 2200);
     const t2 = setTimeout(()=>setSplash(false), 2900);
     return ()=>{ clearTimeout(t1); clearTimeout(t2); };
   },[]);
-
 
   function generateDatasheet(beam: Beam, lft: LengthFt) {
     const weightKg = beam.lbsPerFt * lft * LBS_TO_KG;
@@ -400,7 +392,6 @@ export default function App(): JSX.Element {
     const flangeVal = beam.flange!=null ? nearestFrac(beam.flange) : "N/D";
     const flangeDec = beam.flange!=null ? beam.flange.toFixed(3)+'" \xb7 '+(beam.flange*25.4).toFixed(1)+' mm' : "\u2014";
 
-    // SVG diagram with labeled dimensions
     const hR2=Math.max(0,Math.min(1,(beam.height-4)/40));
     const fR2=Math.max(0,Math.min(1,((beam.flange??8)-3.5)/13));
     const wR2=Math.max(0,Math.min(1,(beam.web-0.17)/1.3));
@@ -419,21 +410,16 @@ export default function App(): JSX.Element {
         '<marker id="arrO" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#d97706"/></marker>' +
         '<marker id="arrOS" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 Z" fill="#d97706"/></marker>' +
       '</defs>' +
-      // beam shapes
       '<rect x="'+sx1+'" y="'+sy1+'" width="'+FW+'" height="'+TF+'" fill="#1e293b" rx="1"/>' +
       '<rect x="'+sx1+'" y="'+(sy2-TF)+'" width="'+FW+'" height="'+TF+'" fill="#1e293b" rx="1"/>' +
       '<rect x="'+swx1+'" y="'+(sy1+TF)+'" width="'+TW+'" height="'+(H-2*TF)+'" fill="#334155"/>' +
-      // h arrow — left outside
       '<line x1="'+(sx1-14)+'" y1="'+sy1+'" x2="'+(sx1-14)+'" y2="'+sy2+'" stroke="#dc2626" stroke-width="1.2" marker-end="url(#arr)" marker-start="url(#arrS)"/>' +
       '<text x="'+(sx1-25)+'" y="'+cy+'" fill="#dc2626" font-size="9" font-family="Arial" font-weight="bold" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90,'+(sx1-25)+','+cy+')">Peralte (h)</text>' +
-      // b arrow — bottom outside
       '<line x1="'+sx1+'" y1="'+(sy2+16)+'" x2="'+sx2+'" y2="'+(sy2+16)+'" stroke="#2563eb" stroke-width="1.2" marker-end="url(#arrB)" marker-start="url(#arrBS)"/>' +
       '<text x="'+cx+'" y="'+(sy2+27)+'" fill="#2563eb" font-size="9" font-family="Arial" font-weight="bold" text-anchor="middle">Pat\u00edn (b)</text>' +
-      // tw arrow — horizontal across web, at mid-height, right side label
       '<line x1="'+swx1+'" y1="'+cy+'" x2="'+swx2+'" y2="'+cy+'" stroke="#16a34a" stroke-width="1.2" marker-end="url(#arrG)" marker-start="url(#arrGS)"/>' +
       '<line x1="'+swx2+'" y1="'+cy+'" x2="'+(sx2+8)+'" y2="'+cy+'" stroke="#16a34a" stroke-width="0.7" stroke-dasharray="3,2"/>' +
       '<text x="'+(sx2+10)+'" y="'+(cy+4)+'" fill="#16a34a" font-size="9" font-family="Arial" font-weight="bold" text-anchor="start">tw</text>' +
-      // tf arrow — vertical across top flange, right side
       '<line x1="'+(sx2+20)+'" y1="'+sy1+'" x2="'+(sx2+20)+'" y2="'+(sy1+TF)+'" stroke="#d97706" stroke-width="1.2" marker-end="url(#arrO)" marker-start="url(#arrOS)"/>' +
       '<line x1="'+sx2+'" y1="'+(sy1+TF/2)+'" x2="'+(sx2+20)+'" y2="'+(sy1+TF/2)+'" stroke="#d97706" stroke-width="0.7" stroke-dasharray="3,2"/>' +
       '<text x="'+(sx2+24)+'" y="'+(sy1+TF/2+4)+'" fill="#d97706" font-size="9" font-family="Arial" font-weight="bold" text-anchor="start">tf</text>';
@@ -506,7 +492,6 @@ export default function App(): JSX.Element {
       '<div class="info-box">&#9888;&#65039; <strong>Nota:</strong> Precio de referencia sujeto a cambios sin previo aviso y a disponibilidad de inventario. El flete es gratis en pedidos con entrega dentro de los municipios de Playas de Rosarito y Tijuana, B.C. Para entregas for\u00e1neas, el costo de env\u00edo se cotiza por separado seg\u00fan el destino y el volumen del pedido. Favor de consultar con un agente el tiempo estimado de entrega.</div>' +
       '<div class="footer"><span class="green">Surtiaceros del Pac\u00edfico S.A. de C.V.</span> &nbsp;&middot;&nbsp; Tel. 661 613 7038 / 7040 &nbsp;&middot;&nbsp; contacto@surtiaceros.com &nbsp;&middot;&nbsp; surtiaceros.com<br>Ficha generada el '+date+' &nbsp;&middot;&nbsp; Todos los derechos reservados &copy; '+new Date().getFullYear()+'</div>';
 
-    // Add print button to the HTML and open in new tab
     const printBtn = '<div style="position:fixed;top:16px;right:16px;z-index:999;display:flex;gap:8px">' +
       '<button onclick="window.print()" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:Arial;box-shadow:0 2px 8px rgba(0,0,0,0.2)">🖨️ Imprimir / Guardar PDF</button>' +
       '<button onclick="window.close()" style="background:#374151;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:Arial">✕ Cerrar</button>' +
@@ -545,7 +530,6 @@ export default function App(): JSX.Element {
     setTimeout(()=>{ setResults(findClosest({height:hI,flange:fI,web:webInch,flangeT:flangeTInch,lbsPerFt:lbsI})); setSearched(true); setLoading(false); },380);
   }
 
-  // Auto-search when any dimension changes
   useEffect(()=>{
     if (height || flange || webInch || flangeTInch || lbsPerFt) {
       setLoading(true); setSelected(null);
@@ -597,24 +581,18 @@ export default function App(): JSX.Element {
       {/* ── Splash screen ── */}
       {splash && (
         <div style={{position:"fixed",inset:0,zIndex:999,background:"#0a0f1a",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:splashFading?"splashFade 0.7s ease forwards":"none",pointerEvents:"none"}}>
-          {/* Animated I-beam SVG */}
           <svg width="120" height="140" viewBox="0 0 120 140" style={{marginBottom:32,overflow:"visible"}}>
-            {/* Top flange */}
             <rect x="10" y="10" width="100" height="16" rx="3" fill="#16a34a"
               style={{transformOrigin:"60px 18px",animation:"splashFlange 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.1s both"}}/>
-            {/* Bottom flange */}
             <rect x="10" y="114" width="100" height="16" rx="3" fill="#16a34a"
               style={{transformOrigin:"60px 122px",animation:"splashFlange 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.25s both"}}/>
-            {/* Web */}
             <rect x="50" y="26" width="20" height="88" fill="#4ade80"
               style={{transformOrigin:"60px 70px",animation:"splashWeb 0.5s cubic-bezier(0.34,1.4,0.64,1) 0.45s both"}}/>
-            {/* Glow */}
             <rect x="10" y="10" width="100" height="16" rx="3" fill="none" stroke="#4ade80" strokeWidth="1" opacity="0.4"
               style={{transformOrigin:"60px 18px",animation:"splashFlange 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.1s both"}}/>
             <rect x="10" y="114" width="100" height="16" rx="3" fill="none" stroke="#4ade80" strokeWidth="1" opacity="0.4"
               style={{transformOrigin:"60px 122px",animation:"splashFlange 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.25s both"}}/>
           </svg>
-          {/* Text */}
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:28,fontWeight:800,color:"#ffffff",letterSpacing:"-0.03em",lineHeight:1.1,animation:"splashText 0.5s ease 0.8s both"}}>
               Surti<span style={{color:"#4ade80"}}>aceros</span>
@@ -643,7 +621,6 @@ export default function App(): JSX.Element {
           {!isMobile && <span style={{fontSize:11,color:"#16a34a",fontWeight:600,letterSpacing:"0.02em",borderBottom:"1px solid #bbf7d0"}}>surtiaceros.com</span>}
         </a>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          {/* Nav tabs */}
           <div style={{display:"flex",background:"#f3f4f6",borderRadius:10,padding:3,gap:2}}>
             {([
               {id:"search" as const, label:isMobile?"Buscar":"Identificador"},
@@ -692,10 +669,7 @@ export default function App(): JSX.Element {
               {Array.from(new Set(BEAMS.map(b=>b.heightR))).sort((a,b)=>a-b).map(h=>{
                 const active = height === String(h);
                 return (
-                  <button key={h} type="button" onClick={()=>{
-                    setHeight(String(h));
-                    setSelected(null);
-                  }} className="tap" style={{flexShrink:0,minWidth:48,minHeight:44,borderRadius:12,border:`2px solid ${active?"#16a34a":"#e5e7eb"}`,background:active?"#16a34a":"#ffffff",color:active?"#ffffff":"#374151",fontSize:14,fontWeight:active?800:500,cursor:"pointer",transition:"all 0.15s",fontFamily:"monospace",boxShadow:active?"0 2px 8px rgba(22,163,74,0.3)":"none"}}>
+                  <button key={h} type="button" onClick={()=>{ setHeight(String(h)); setSelected(null); }} className="tap" style={{flexShrink:0,minWidth:48,minHeight:44,borderRadius:12,border:`2px solid ${active?"#16a34a":"#e5e7eb"}`,background:active?"#16a34a":"#ffffff",color:active?"#ffffff":"#374151",fontSize:14,fontWeight:active?800:500,cursor:"pointer",transition:"all 0.15s",fontFamily:"monospace",boxShadow:active?"0 2px 8px rgba(22,163,74,0.3)":"none"}}>
                     {h}"
                   </button>
                 );
@@ -703,22 +677,16 @@ export default function App(): JSX.Element {
             </div>
           </div>
 
-          {/* Flange selector — filtered to sizes that exist for selected height */}
+          {/* Flange selector */}
           <div>
             <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8}}>
               Ancho de Patín (b)
               {flange && <span style={{marginLeft:8,fontSize:12,color:"#16a34a",fontWeight:800,fontFamily:"monospace",textTransform:"none",letterSpacing:0}}>{flange}"</span>}
             </div>
             {(() => {
-              // Show flange options: if height selected, show flanges of beams with that nominal height
-              // Round flange to nearest whole or half inch for grouping
-              const relevantBeams = height
-                ? BEAMS.filter(b=>b.heightR === parseInt(height))
-                : BEAMS;
+              const relevantBeams = height ? BEAMS.filter(b=>b.heightR === parseInt(height)) : BEAMS;
               const flangeNominals = Array.from(new Set(
-                relevantBeams
-                  .filter(b=>b.flange!=null)
-                  .map(b=>Math.round((b.flange as number)*2)/2)
+                relevantBeams.filter(b=>b.flange!=null).map(b=>Math.round((b.flange as number)*2)/2)
               )).sort((a,b)=>a-b);
               if (flangeNominals.length === 0) flangeNominals.push(...[4,6,8,10,12,14,16].filter(f=>f<=20));
               return (
@@ -727,10 +695,7 @@ export default function App(): JSX.Element {
                     const label = Number.isInteger(f) ? `${f}"` : `${f}"`;
                     const active = flange === String(f);
                     return (
-                      <button key={f} type="button" onClick={()=>{
-                        setFlange(String(f));
-                        setSelected(null);
-                      }} className="tap" style={{flexShrink:0,minWidth:50,minHeight:44,borderRadius:12,border:`2px solid ${active?"#16a34a":"#e5e7eb"}`,background:active?"#16a34a":"#ffffff",color:active?"#ffffff":"#374151",fontSize:13,fontWeight:active?800:500,cursor:"pointer",transition:"all 0.15s",fontFamily:"monospace",boxShadow:active?"0 2px 8px rgba(22,163,74,0.3)":"none"}}>
+                      <button key={f} type="button" onClick={()=>{ setFlange(String(f)); setSelected(null); }} className="tap" style={{flexShrink:0,minWidth:50,minHeight:44,borderRadius:12,border:`2px solid ${active?"#16a34a":"#e5e7eb"}`,background:active?"#16a34a":"#ffffff",color:active?"#ffffff":"#374151",fontSize:13,fontWeight:active?800:500,cursor:"pointer",transition:"all 0.15s",fontFamily:"monospace",boxShadow:active?"0 2px 8px rgba(22,163,74,0.3)":"none"}}>
                         {label}
                       </button>
                     );
@@ -741,7 +706,6 @@ export default function App(): JSX.Element {
             {height && <div style={{fontSize:10,color:"#9ca3af",marginTop:5}}>Mostrando anchos disponibles para vigas de {height}"</div>}
           </div>
 
-          {/* Clear selection */}
           {(height || flange) && (
             <button type="button" onClick={()=>{setHeight("");setFlange("");setLbsPerFt("");setResults([]);setSearched(false);setSelected(null);}} style={{alignSelf:"flex-start",fontSize:12,color:"#9ca3af",background:"none",border:"none",cursor:"pointer",padding:"2px 0",fontWeight:500}}>
               ✕ Limpiar selección
@@ -755,15 +719,12 @@ export default function App(): JSX.Element {
             Espesores (pulgadas) <span style={{fontWeight:400,color:"#9ca3af",textTransform:"none",fontSize:11}}>(opcional)</span>
           </div>
 
-          {/* Alma (tw) */}
           {(()=>{
             const relevant = BEAMS.filter(b =>
               (!height || b.heightR === parseInt(height)) &&
               (!flange || Math.abs((b.flange??0) - parseFloat(flange)) < 0.4)
             );
-            const options = Array.from(new Set(
-              relevant.map(b => Math.round(b.web * 16) / 16)
-            )).sort((a,b)=>a-b);
+            const options = Array.from(new Set(relevant.map(b => Math.round(b.web * 16) / 16))).sort((a,b)=>a-b);
             return (
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8}}>
@@ -789,15 +750,12 @@ export default function App(): JSX.Element {
 
           <div style={{height:1,background:"#f3f4f6"}}/>
 
-          {/* Patín (tf) */}
           {(()=>{
             const relevant = BEAMS.filter(b =>
               (!height || b.heightR === parseInt(height)) &&
               (!flange || Math.abs((b.flange??0) - parseFloat(flange)) < 0.4)
             );
-            const options = Array.from(new Set(
-              relevant.map(b => Math.round(b.flangeT * 16) / 16)
-            )).sort((a,b)=>a-b);
+            const options = Array.from(new Set(relevant.map(b => Math.round(b.flangeT * 16) / 16))).sort((a,b)=>a-b);
             return (
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8}}>
@@ -857,7 +815,7 @@ export default function App(): JSX.Element {
           </div>
         </div>
 
-        {/* Search (desktop) */}
+        {/* Search button (desktop) */}
         {!isMobile && (
           <button type="button" onClick={doSearch} disabled={!canSearch} className="tap" style={searchBtn}>
             {loading
@@ -873,7 +831,7 @@ export default function App(): JSX.Element {
             <div style={{fontSize:11,fontWeight:700,color:"#374151",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10,paddingLeft:2}}>Vigas más cercanas a lo que usted busca:</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {results.map(({beam,dist},i)=>{
-                const isTop=i===0, isExp=selected?.id===beam.id;
+                const isExp=selected?.id===beam.id;
                 const score=Math.max(0,100-dist*200);
                 const mLabel=score>90?"Casi Exacto":score>70?"Muy cercano":score>50?"Cercano":"Aproximado";
                 const mColor=score>90?"#16a34a":score>70?"#3b82f6":score>50?"#f59e0b":"#9ca3af";
@@ -881,22 +839,22 @@ export default function App(): JSX.Element {
                 const price=weightKg*PRICE_PER_KG;
                 return (
                   <div key={beam.id} className="rc" style={{animationDelay:`${i*0.07}s`}}>
-                    <div onClick={()=>setSelected(isExp?null:beam)} className="tap" style={{background:isTop?"#111827":"#ffffff",border:`1.5px solid ${isTop?"#111827":isExp?"#16a34a":"#e5e7eb"}`,borderRadius:isExp?"16px 16px 0 0":16,padding:"16px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,userSelect:"none",boxShadow:isTop?"0 4px 16px rgba(0,0,0,0.2)":"0 1px 3px rgba(0,0,0,0.04)"}}>
-                      <div style={{width:34,height:34,borderRadius:10,flexShrink:0,background:isTop?"rgba(255,255,255,0.1)":"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:isTop?"rgba(255,255,255,0.7)":"#374151"}}>{i+1}</div>
+                    <div onClick={()=>setSelected(isExp?null:beam)} className="tap" style={{background:"#ffffff",border:`1.5px solid ${isExp?"#16a34a":"#e5e7eb"}`,borderRadius:isExp?"16px 16px 0 0":16,padding:"16px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,userSelect:"none",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+                      <div style={{width:34,height:34,borderRadius:10,flexShrink:0,background:"#f3f4f6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"#374151"}}>{i+1}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:15,fontWeight:700,color:isTop?"#ffffff":"#111827",fontFamily:"'JetBrains Mono',monospace",letterSpacing:"-0.02em"}}>Viga {beam.name}</div>
+                        <div style={{fontSize:15,fontWeight:700,color:"#111827",fontFamily:"'JetBrains Mono',monospace",letterSpacing:"-0.02em"}}>Viga {beam.name}</div>
                         <div style={{display:"flex",alignItems:"center",gap:5,marginTop:4}}>
-                          <span style={{width:6,height:6,borderRadius:"50%",background:isTop?"rgba(255,255,255,0.5)":mColor,flexShrink:0,display:"inline-block"}}/>
-                          <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",color:isTop?"rgba(255,255,255,0.55)":mColor}}>{mLabel}</span>
+                          <span style={{width:6,height:6,borderRadius:"50%",background:mColor,flexShrink:0,display:"inline-block"}}/>
+                          <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",color:mColor}}>{mLabel}</span>
                         </div>
-                        <div style={{fontSize:9,color:isTop?"rgba(255,255,255,0.3)":"#9ca3af",marginTop:3,lineHeight:1.4}}>Sujeto a disponibilidad, favor de contactar para revisar tiempos de entrega</div>
+                        <div style={{fontSize:9,color:"#9ca3af",marginTop:3,lineHeight:1.4}}>Sujeto a disponibilidad, favor de contactar para revisar tiempos de entrega</div>
                       </div>
                       <div style={{textAlign:"right",flexShrink:0}}>
-                        <div style={{fontSize:15,fontWeight:800,color:isTop?"#4ade80":"#16a34a",fontFamily:"monospace"}}>{fmtPeso(price)}</div>
-                        <div style={{fontSize:11,color:isTop?"rgba(255,255,255,0.4)":"#9ca3af",marginTop:2,fontWeight:500}}>{Math.round(weightKg)} kg · {lengthFt} ft</div>
+                        <div style={{fontSize:15,fontWeight:800,color:"#16a34a",fontFamily:"monospace"}}>{fmtPeso(price)}</div>
+                        <div style={{fontSize:11,color:"#9ca3af",marginTop:2,fontWeight:500}}>{Math.round(weightKg)} kg · {lengthFt} ft</div>
                       </div>
                       <svg width="16" height="16" viewBox="0 0 18 18" fill="none" style={{flexShrink:0,transform:isExp?"rotate(90deg)":"none",transition:"transform 0.2s",opacity:0.4}}>
-                        <path d="M7 5l4 4-4 4" stroke={isTop?"#ffffff":"#374151"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M7 5l4 4-4 4" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </div>
                     {isExp && (
@@ -996,7 +954,6 @@ export default function App(): JSX.Element {
                   ))}
                 </div>
               </div>
-              {/* Filter by height */}
               <div>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6}}>Filtrar por peralte</div>
                 <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
