@@ -209,6 +209,10 @@ const BEAMS: Beam[] = [
 
 const LBS_TO_KG = 0.453592;
 const FT_TO_M = 0.3048;
+// ── CONVERSIÓN PESO LINEAL ───────────────────────────────────────────────────
+// 1 lb/ft = 0.453592 kg / 0.3048 m = 1.48816 kg/m
+// (NO usar LBS_TO_KG solo: eso convierte libras → kilos, NO lb/ft → kg/m)
+const LBS_FT_TO_KG_M = LBS_TO_KG / FT_TO_M; // ≈ 1.48816
 const LENGTH_OPTIONS: LengthFt[] = [20, 40];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -387,7 +391,7 @@ export default function App(): JSX.Element {
     const price = weightKg * PRICE_PER_KG;
     const fmt = (n:number) => new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(n);
     const date = new Date().toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"});
-    const kgPerM = (beam.lbsPerFt*LBS_TO_KG).toFixed(2);
+    const kgPerM = (beam.lbsPerFt*LBS_FT_TO_KG_M).toFixed(2);
     const lftM   = (lft*FT_TO_M).toFixed(1);
     const flangeVal = beam.flange!=null ? nearestFrac(beam.flange) : "N/D";
     const flangeDec = beam.flange!=null ? beam.flange.toFixed(3)+'" \xb7 '+(beam.flange*25.4).toFixed(1)+' mm' : "\u2014";
@@ -566,6 +570,13 @@ export default function App(): JSX.Element {
         button,input{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
         *{-webkit-font-smoothing:antialiased;}
         ::-webkit-scrollbar{display:none;}
+        /* Barra de desplazamiento visible en escritorio para selectores horizontales */
+        .hscroll{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent;}
+        .hscroll::-webkit-scrollbar{display:block!important;height:10px;}
+        .hscroll::-webkit-scrollbar-track{background:#f1f3f5;border-radius:6px;}
+        .hscroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px;border:2px solid #f1f3f5;}
+        .hscroll::-webkit-scrollbar-thumb:hover{background:#16a34a;}
+        .hscroll::-webkit-scrollbar-thumb:active{background:#15803d;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
         @keyframes spin{to{transform:rotate(360deg);}}
         @keyframes splashFlange{0%{transform:scaleX(0);opacity:0}60%{transform:scaleX(1.05);opacity:1}100%{transform:scaleX(1);opacity:1}}
@@ -665,7 +676,7 @@ export default function App(): JSX.Element {
               Peralte / Altura (h)
               {height && <span style={{marginLeft:8,fontSize:12,color:"#16a34a",fontWeight:800,fontFamily:"monospace",textTransform:"none",letterSpacing:0}}>{height}"</span>}
             </div>
-            <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
+            <div className={isMobile?undefined:"hscroll"} style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:isMobile?4:10,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
               {Array.from(new Set(BEAMS.map(b=>b.heightR))).sort((a,b)=>a-b).map(h=>{
                 const active = height === String(h);
                 return (
@@ -690,7 +701,7 @@ export default function App(): JSX.Element {
               )).sort((a,b)=>a-b);
               if (flangeNominals.length === 0) flangeNominals.push(...[4,6,8,10,12,14,16].filter(f=>f<=20));
               return (
-                <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
+                <div className={isMobile?undefined:"hscroll"} style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:isMobile?4:10,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
                   {flangeNominals.map(f=>{
                     const label = Number.isInteger(f) ? `${f}"` : `${f}"`;
                     const active = flange === String(f);
@@ -731,7 +742,7 @@ export default function App(): JSX.Element {
                   Alma (tw)
                   {webInch && <span style={{marginLeft:8,fontSize:12,color:"#16a34a",fontWeight:800,fontFamily:"monospace",textTransform:"none",letterSpacing:0}}>≈ {nearestFrac(webInch)}</span>}
                 </div>
-                <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
+                <div className={isMobile?undefined:"hscroll"} style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:isMobile?4:10,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
                   <button type="button" onClick={()=>setWebInch(null)} className="tap" style={{flexShrink:0,minWidth:40,minHeight:42,borderRadius:12,border:`2px solid ${webInch===null?"#16a34a":"#e5e7eb"}`,background:webInch===null?"#16a34a":"#ffffff",color:webInch===null?"#ffffff":"#9ca3af",fontSize:15,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>—</button>
                   {options.map(v=>{
                     const frac = nearestFrac(v);
@@ -762,7 +773,7 @@ export default function App(): JSX.Element {
                   Patín (tf)
                   {flangeTInch && <span style={{marginLeft:8,fontSize:12,color:"#16a34a",fontWeight:800,fontFamily:"monospace",textTransform:"none",letterSpacing:0}}>≈ {nearestFrac(flangeTInch)}</span>}
                 </div>
-                <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
+                <div className={isMobile?undefined:"hscroll"} style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:isMobile?4:10,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
                   <button type="button" onClick={()=>setFlangeTInch(null)} className="tap" style={{flexShrink:0,minWidth:40,minHeight:42,borderRadius:12,border:`2px solid ${flangeTInch===null?"#16a34a":"#e5e7eb"}`,background:flangeTInch===null?"#16a34a":"#ffffff",color:flangeTInch===null?"#ffffff":"#9ca3af",fontSize:15,fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>—</button>
                   {options.map(v=>{
                     const frac = nearestFrac(v);
@@ -877,7 +888,7 @@ export default function App(): JSX.Element {
                             {lbl:"Patín (b)",      dec:beam.flange!=null?`${beam.flange.toFixed(3)}"`:"N/D", frac:beam.flange!=null?nearestFrac(beam.flange):""},
                             {lbl:"Esp. Alma (tw)", dec:`${beam.web.toFixed(3)}"`,     frac:nearestFrac(beam.web)},
                             {lbl:"Esp. Patín (tf)",dec:`${beam.flangeT.toFixed(3)}"`,frac:nearestFrac(beam.flangeT)},
-                            {lbl:"Peso lineal",    dec:`${beam.lbsPerFt} lb/ft`,      frac:"", bottom:`${(beam.lbsPerFt*LBS_TO_KG).toFixed(2)} kg/m`},
+                            {lbl:"Peso lineal",    dec:`${beam.lbsPerFt} lb/ft`,      frac:"", bottom:`${(beam.lbsPerFt*LBS_FT_TO_KG_M).toFixed(2)} kg/m`},
                           ].map(({lbl,dec,frac,bottom})=>(
                             <div key={lbl} style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:10,padding:"9px 10px"}}>
                               <div style={{fontSize:10,color:"#6b7280",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4,fontWeight:600}}>{lbl}</div>
@@ -917,7 +928,7 @@ export default function App(): JSX.Element {
 
         {!searched && !isMobile && (
           <div style={{textAlign:"center",color:"#9ca3af",fontSize:12,paddingTop:4}}>
-            {BEAMS.length} perfiles · 20 ft y 40 ft · $40 MXN/kg con IVA
+            {BEAMS.length} perfiles · 20 ft y 40 ft · ${PRICE_PER_KG} MXN/kg con IVA
           </div>
         )}
       </main>
@@ -992,7 +1003,7 @@ export default function App(): JSX.Element {
                     <div style={{width:38,height:38,borderRadius:10,background:isExp?"#f0fdf4":"#f3f4f6",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:isExp?"#15803d":"#374151",fontFamily:"monospace",border:isExp?"1.5px solid #bbf7d0":"none"}}>{beam.heightR}"</div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:700,color:"#111827",fontFamily:"'JetBrains Mono',monospace",letterSpacing:"-0.02em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Viga {beam.name}</div>
-                      <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{beam.lbsPerFt} lb/ft · {(beam.lbsPerFt*LBS_TO_KG).toFixed(2)} kg/m{beam.flange?` · patín ${beam.flange}"`:""}
+                      <div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{beam.lbsPerFt} lb/ft · {(beam.lbsPerFt*LBS_FT_TO_KG_M).toFixed(2)} kg/m{beam.flange?` · patín ${beam.flange}"`:""}
                       </div>
                       <div style={{fontSize:9,color:"#9ca3af",marginTop:3,lineHeight:1.4}}>Sujeto a disponibilidad, favor de contactar para revisar tiempos de entrega</div>
                     </div>
@@ -1029,7 +1040,7 @@ export default function App(): JSX.Element {
                           else if(idx===1){decVal=beam.flange!=null?`${beam.flange.toFixed(3)}"`:"N/D";fracVal=beam.flange!=null?nearestFrac(beam.flange):"";}
                           else if(idx===2){decVal=`${beam.web.toFixed(3)}"`;fracVal=nearestFrac(beam.web);}
                           else if(idx===3){decVal=`${beam.flangeT.toFixed(3)}"`;fracVal=nearestFrac(beam.flangeT);}
-                          else if(idx===4){decVal=`${beam.lbsPerFt} lb/ft`;fracVal="";bottom=`${(beam.lbsPerFt*LBS_TO_KG).toFixed(2)} kg/m`;}
+                          else if(idx===4){decVal=`${beam.lbsPerFt} lb/ft`;fracVal="";bottom=`${(beam.lbsPerFt*LBS_FT_TO_KG_M).toFixed(2)} kg/m`;}
                           else return null;
                           return (
                             <div key={lbl as string} style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 12px"}}>
@@ -1111,7 +1122,7 @@ export default function App(): JSX.Element {
             Aplicación desarrollada por Surtiaceros del Pacífico S.A. de C.V.<br/>
             Todos los derechos reservados © {new Date().getFullYear()}
           </p>
-          <p style={{fontSize:10,color:"rgba(255,255,255,0.18)",marginTop:4}}>v2.5</p>
+          <p style={{fontSize:10,color:"rgba(255,255,255,0.18)",marginTop:4}}>v2.7</p>
         </div>
       </footer>
     </div>
