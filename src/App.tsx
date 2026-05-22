@@ -577,6 +577,13 @@ export default function App(): JSX.Element {
         .hscroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px;border:2px solid #f1f3f5;}
         .hscroll::-webkit-scrollbar-thumb:hover{background:#16a34a;}
         .hscroll::-webkit-scrollbar-thumb:active{background:#15803d;}
+        /* Variante oscura para la fila de filtro sobre fondo negro del catálogo */
+        .hscroll-dark{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.25) transparent;}
+        .hscroll-dark::-webkit-scrollbar{display:block!important;height:10px;}
+        .hscroll-dark::-webkit-scrollbar-track{background:rgba(255,255,255,0.06);border-radius:6px;}
+        .hscroll-dark::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.22);border-radius:6px;border:2px solid transparent;background-clip:padding-box;}
+        .hscroll-dark::-webkit-scrollbar-thumb:hover{background:#4ade80;background-clip:padding-box;}
+        .hscroll-dark::-webkit-scrollbar-thumb:active{background:#16a34a;background-clip:padding-box;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
         @keyframes spin{to{transform:rotate(360deg);}}
         @keyframes splashFlange{0%{transform:scaleX(0);opacity:0}60%{transform:scaleX(1.05);opacity:1}100%{transform:scaleX(1);opacity:1}}
@@ -967,7 +974,7 @@ export default function App(): JSX.Element {
               </div>
               <div>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6}}>Filtrar por peralte</div>
-                <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
+                <div className={isMobile?undefined:"hscroll-dark"} style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:isMobile?4:10,WebkitOverflowScrolling:"touch" as CSSProperties["WebkitOverflowScrolling"]}}>
                   <button type="button" onClick={()=>setCatFilter(null)} className="tap" style={{flexShrink:0,padding:"5px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,background:catFilter===null?"#16a34a":"rgba(255,255,255,0.1)",color:catFilter===null?"#fff":"rgba(255,255,255,0.6)",minHeight:30}}>Todos</button>
                   {Array.from(new Set(BEAMS.map(b=>b.heightR))).sort((a,b)=>a-b).map(h=>(
                     <button key={h} type="button" onClick={()=>{ setCatFilter(catFilter===h?null:h); setCatSelected(null); }} className="tap"
